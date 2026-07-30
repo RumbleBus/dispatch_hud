@@ -10,6 +10,7 @@ const OPENCLAW = process.env.OPENCLAW_PATH || '/usr/bin/openclaw';
 
 // ---------- config ----------
 const PORT = 4400;
+const HOST = process.env.HUD_HOST || '0.0.0.0';
 const SESSION_STORE = path.join(process.env.HOME || '/home/node', '.openclaw', 'agents', 'main', 'sessions', 'sessions.json');
 const POLL_INTERVAL = 30000; // fallback CLI poll every 30s
 const ACTIVE_THRESHOLD = 60000;    // 60s since last update = active
@@ -480,8 +481,8 @@ function startup() {
   setInterval(pollCli, POLL_INTERVAL);
 
   // Start HTTP server
-  server.listen(PORT, '127.0.0.1', () => {
-    console.log(`[hud] listening on http://127.0.0.1:${PORT}`);
+  server.listen(PORT, HOST, () => {
+    console.log(`[hud] listening on http://${HOST}:${PORT}`);
     console.log(`[hud] ${agents.length} agents, ${Object.keys(sessions).length} sessions`);
     if (openclawVersion) {
       console.log(`[hud] OpenClaw ${openclawVersion}`);
