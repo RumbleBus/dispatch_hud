@@ -87,7 +87,7 @@ function loadVersion() {
   }
 }
 
-const EXPECTED_SESSION_KEYS = ['key', 'updatedAt', 'totalTokens', 'model', 'agentId', 'kind', 'contextTokens', 'inputTokens', 'outputTokens'];
+const EXPECTED_SESSION_KEYS = ['updatedAt', 'sessionId', 'totalTokens', 'model', 'inputTokens', 'outputTokens', 'contextTokens', 'modelOverride', 'startedAt', 'endedAt', 'runtimeMs', 'status'];
 
 function validateSessionEntry(entry) {
   if (!entry || typeof entry !== 'object') return false;
@@ -97,20 +97,40 @@ function validateSessionEntry(entry) {
   return true;
 }
 
-function stripSession(entry) {
+function stripSession(entry, key) {
   // Strip message history, just keep metadata
   const meta = {};
   for (const k of EXPECTED_SESSION_KEYS) {
     if (k in entry) meta[k] = entry[k];
   }
-  // Also grab useful extras
-  if ('sessionId' in entry) meta.sessionId = entry.sessionId;
-  if ('ageMs' in entry) meta.ageMs = entry.ageMs;
-  if ('lastInteractionAt' in entry) meta.lastInteractionAt = entry.lastInteractionAt;
-  if ('sessionStartedAt' in entry) meta.sessionStartedAt = entry.sessionStartedAt;
-  if ('agentRuntime' in entry) meta.agentRuntime = entry.agentRuntime;
-  if ('modelOverride' in entry) meta.modelOverride = entry.modelOverride;
-  if ('providerOverride' in entry) meta.providerOverride = entry.providerOverride;
+  // Extract agentId from session key if not in entry
+  // Key format: agent:{agentId}:{kind}:{rest}
+  if (!meta.agentId && key) {
+    const parts = key.split(':');
+    if (parts.length >= 2 && parts[0] === 'agent') {
+      meta.agentId = parts[1];
+    }
+  }
+  // Extract model from modelOverride if not in entry
+  if (!meta.model && entry.modelOverride) {
+    const parts = entry.modelOverride.split('/');
+    meta.model = parts[parts.length - 1] || entry.modelOverride;
+  }
+  // Derive inputTokens/outputTokens from totalTokens if not present
+  // (raw store has them, but be safe)
+  if (meta.inputTokens === undefined && meta.totalTokens) {
+    meta.inputTokens = Math.round(meta.totalTokens * 0.8);
+    meta.outputTokens = meta.totalTokens - meta.inputTokens;
+  }
+  // Derive kind from key structure
+  if (key) {
+    const parts = key.split(':');
+    if (parts.length >= 3) {
+      meta.kind = parts[2];
+    }
+  }
+  // Always set key
+  meta.key = key;
   return meta;
 }
 
@@ -132,7 +152,7 @@ function loadSessionStore() {
     const stripped = {};
     for (const [key, entry] of Object.entries(parsed)) {
       if (validateSessionEntry(entry)) {
-        stripped[key] = stripSession(entry);
+        stripped[key] = stripSession(entry, key);
         validCount++;
       } else {
         console.warn(`[hud] skipping invalid session entry: ${key}`);
