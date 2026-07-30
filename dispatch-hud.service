@@ -1,0 +1,22 @@
+[Unit]
+Description=Dispatch HUD — real-time OpenClaw operational dashboard
+After=openclaw.service
+Wants=openclaw.service
+
+[Service]
+Type=simple
+User=node
+Group=node
+WorkingDirectory=/home/node/.openclaw/workspace/dispatch-hud
+ExecStart=/usr/bin/node /home/node/.openclaw/workspace/dispatch-hud/server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dispatch-hud
+TimeoutStopSec=5
+KillSignal=SIGTERM
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
