@@ -475,9 +475,41 @@ const server = http.createServer((req, res) => {
 
 // ---------- start ----------
 
+function validateClientJs() {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  try {
+    const html = fs.readFileSync(indexPath, 'utf8');
+    const start = html.indexOf('<script>');
+    const end = html.indexOf('</script>');
+    if (start === -1 || end === -1) {
+      console.error('[hud] CLIENT JS ERROR: no <script> block found in index.html');
+      return;
+    }
+    const script = html.substring(start + 8, end);
+    try {
+      new Function(script);
+      console.log('[hud] client JS: syntax OK');
+    } catch (e) {
+      console.error('[hud] CLIENT JS SYNTAX ERROR:', e.message);
+      // Try to pinpoint the line
+      const lines = script.split('\n');
+      const match = e.message.match(/line (\d+)/i);
+      if (match) {
+        const lineNum = parseInt(match[1]);
+        console.error('[hud] around line', lineNum + ':', lines[lineNum - 1] ? lines[lineNum - 1].substring(0, 200) : '(out of range)');
+      }
+    }
+  } catch (e) {
+    console.warn('[hud] could not validate client JS:', e.message);
+  }
+}
+
 function startup() {
   console.log('[hud] Dispatch HUD starting...');
   console.log('[hud] session store:', SESSION_STORE);
+  
+  // Validate client-side JavaScript before serving
+  validateClientJs();
 
   // Load agents
   loadAgents();
