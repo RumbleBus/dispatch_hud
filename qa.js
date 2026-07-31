@@ -451,51 +451,63 @@ async function main() {
     }
 
     // 6. Agent fleet check — session counts and token totals per agent
+    // For orchestrator (main), the HUD may show multiple cards (one per topic).
+    // Aggregate by agent id before comparing.
     const hudAgents = hudData.agents || [];
     let fleetMismatches = [];
 
-    for (const hudAgent of hudAgents) {
-      const aid = hudAgent.id;
+    // Aggregate HUD agents by id (multiple main cards = one logical agent)
+    const hudById = {};
+    for (const ha of hudAgents) {
+      if (!hudById[ha.id]) {
+        hudById[ha.id] = { id: ha.id, sessions: 0, tokens: 0 };
+      }
+      hudById[ha.id].sessions += (ha.sessions || 0);
+      hudById[ha.id].tokens += (ha.tokens || 0);
+    }
+
+    for (const aid of Object.keys(hudById)) {
+      const agg = hudById[aid];
       const rawCount = raw.perAgent[aid] || 0;
-      const hudCount = hudAgent.sessions || 0;
-
-      if (hudCount !== rawCount) {
-        fleetMismatches.push({
-          agent: aid,
-          field: 'sessionCount',
-          hud: hudCount,
-          raw: rawCount
-        });
-      }
-
-      // Token total check
-      let rawTokens = 0;
-      for (const [key, s] of Object.entries(raw.sessions)) {
-        if ((s.agentId || 'main') === aid) {
-          rawTokens += (s.totalTokens || 0);
+      const rawTokens = (() => {
+        let t = 0;
+        for (const [key, s] of Object.entries(raw.sessions)) {
+          if ((s.agentId || 'main') !== aid) continue;
+          if (aid === 'main' && s.updatedAt && (nowMs - s.updatedAt) >= STALE_THRESHOLD) continue;
+          if (aid === 'main') {
+            const k = s.key || '';
+            if (k.includes('subagent:')) continue;
+            if (k.includes(':admin') || k.includes('slash:')) continue;
+            if (k.includes('reasoning-probe')) continue;
+          }
+          t += (s.totalTokens || 0);
         }
+        return t;
+      })();
+      const rawCountRecent = aid === 'main'
+        ? Object.values(raw.sessions).filter(s => {
+            if ((s.agentId || 'main') !== aid) return false;
+            if (!s.updatedAt || (nowMs - s.updatedAt) >= STALE_THRESHOLD) return false;
+            const key = s.key || '';
+            if (key.includes('subagent:')) return false;
+            if (key.includes(':admin') || key.includes('slash:')) return false;
+            if (key.includes('reasoning-probe')) return false;
+            return true;
+          }).length
+        : rawCount;
+
+      if (agg.sessions !== rawCountRecent) {
+        fleetMismatches.push({ agent: aid, field: 'sessionCount', hud: agg.sessions, raw: rawCountRecent });
       }
-      const hudTokens = hudAgent.tokens || 0;
-      if (hudTokens !== rawTokens) {
-        fleetMismatches.push({
-          agent: aid,
-          field: 'tokens',
-          hud: hudTokens,
-          raw: rawTokens
-        });
+      if (agg.tokens !== rawTokens) {
+        fleetMismatches.push({ agent: aid, field: 'tokens', hud: agg.tokens, raw: rawTokens });
       }
     }
 
     // Check for agents in raw but not in HUD fleet
     for (const rawAgent of Object.keys(raw.perAgent)) {
-      const found = hudAgents.find(a => a.id === rawAgent);
-      if (!found) {
-        fleetMismatches.push({
-          agent: rawAgent,
-          field: 'missing',
-          hud: 'absent',
-          raw: raw.perAgent[rawAgent]
-        });
+      if (!hudById[rawAgent]) {
+        fleetMismatches.push({ agent: rawAgent, field: 'missing', hud: 'absent', raw: raw.perAgent[rawAgent] });
       }
     }
 
@@ -536,11 +548,16 @@ async function main() {
     }
 
     // 8. Fleet status check — verify agent fleet statuses match raw data
+    // Skip orchestrator (main) topic cards — they have per-topic status, not per-agent
     let fleetStatusErrors = [];
+    const seenAgents = new Set();
     for (const hudAgent of hudAgents) {
+      const aid = hudAgent.id;
+      if (aid === 'main' && hudAgent.topicKey) continue; // skip topic cards
+      if (seenAgents.has(aid)) continue;
+      seenAgents.add(aid);
       // Recompute lastActive from raw data
       let lastActive = null;
-      const aid = hudAgent.id;
       for (const [key, s] of Object.entries(raw.sessions)) {
         if ((s.agentId || 'main') !== aid) continue;
         if (!s.updatedAt) continue;
@@ -615,8 +632,12 @@ async function main() {
     // 10. Agent status with recent session not reflected — check each agent
     // Uses the same heartbeat filter logic as the HUD to avoid false positives
     let staleAgentWarnings = [];
+    const staleSeen = new Set();
     for (const hudAgent of hudAgents) {
       const aid = hudAgent.id;
+      if (aid === 'main' && hudAgent.topicKey) continue; // skip topic cards
+      if (staleSeen.has(aid)) continue;
+      staleSeen.add(aid);
       // Find most recent non-heartbeat session for this agent
       let mostRecent = null;
       let mostRecentKey = null;

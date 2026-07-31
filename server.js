@@ -618,7 +618,7 @@ function buildState() {
   }
 
   // Build fleet with last activity
-  const fleet = agents.map(a => {
+  const fleet = agents.flatMap(a => {
     const ses = agentSessions[a.id] || [];
     const totalTokens = ses.reduce((sum, s) => sum + (s.totalTokens || 0), 0);
     
@@ -655,7 +655,7 @@ function buildState() {
       if (ids.includes(a.id)) { category = cat; break; }
     }
 
-    return {
+    const baseAgent = {
       id: a.id,
       name: a.name,
       model: a.model,
@@ -668,6 +668,51 @@ function buildState() {
       lastActive,
       lastActiveAgo: lastActive ? ago(lastActive) : 'never',
     };
+
+    // For the orchestrator (main), expand into multiple cards: one per active topic/session
+    if (a.id === 'main') {
+      const topicCards = [];
+      const mainSessions = ses.filter(s => s.updatedAt && (now_ms - s.updatedAt) < STALE_THRESHOLD);
+      for (const s of mainSessions) {
+        const label = getSessionLabel(s);
+        // Skip subagent sessions and admin/slash sessions
+        if (s.key && s.key.includes('subagent:')) continue;
+        if (s.key && (s.key.includes(':admin') || s.key.includes('slash:'))) continue;
+        if (s.key && s.key.includes('reasoning-probe')) continue;
+
+        // Check heartbeat for this session
+        const hb = checkHeartbeat(s.key, s.sessionId);
+        let sessionTs = s.updatedAt;
+        if (hb.isHeartbeat && hb.lastRealActivity) {
+          sessionTs = hb.lastRealActivity;
+        }
+        if (!sessionTs) continue;
+
+        const sessionAge = now_ms - sessionTs;
+        let sessionStatus = 'idle';
+        if (sessionAge < ACTIVE_THRESHOLD) sessionStatus = 'active';
+        else if (sessionAge < RECENT_THRESHOLD) sessionStatus = 'recent';
+        else if (sessionAge < STALE_THRESHOLD) sessionStatus = 'idle';
+        else sessionStatus = 'stale';
+
+        topicCards.push({
+          ...baseAgent,
+          id: 'main',
+          topicKey: s.key,
+          topicLabel: label,
+          status: sessionStatus,
+          sessions: 1,
+          tokens: s.totalTokens || 0,
+          lastActive: sessionTs,
+          lastActiveAgo: ago(sessionTs),
+        });
+      }
+      // Sort topic cards by lastActive desc
+      topicCards.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
+      return topicCards;
+    }
+
+    return [baseAgent];
   });
 
   // Sort comms by time desc

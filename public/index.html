@@ -470,13 +470,14 @@ function renderFleet(fleet) {
       html += '<div class="agent-grid">';
       agents.forEach(function(a) {
         var iconId = AGENT_ICONS[a.id] || 'icon-headset';
+        var displayName = a.topicLabel || a.identityName || a.name;
         html += '<div class="agent-card ' + (a.status || 'idle') + '">' +
           '<div class="agent-card-top">' +
             '<div class="agent-icon">' +
               '<svg><use href="#' + iconId + '"/></svg>' +
             '</div>' +
             '<div class="agent-card-info">' +
-              '<div class="agent-name">' + escapeHtml(a.identityName || a.name) + '</div>' +
+              '<div class="agent-name">' + escapeHtml(displayName) + '</div>' +
               '<div class="agent-model">' + (a.model || '').split('/').pop() + '</div>' +
             '</div>' +
           '</div>' +
