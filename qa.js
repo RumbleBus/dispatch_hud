@@ -104,8 +104,8 @@ function getSessionLabel(s) {
 
 // ---------- heartbeat detection (mirrors server.js) ----------
 
-function isHeartbeatActive(sessionKey, sessionId) {
-  if (!sessionId) return false;
+function checkHeartbeat(sessionKey, sessionId) {
+  if (!sessionId) return { isHeartbeat: false, lastRealActivity: null };
 
   const agentId = sessionKey ? (sessionKey.split(':')[1] || 'main') : 'main';
   const transcriptDir = path.join(AGENTS_DIR, agentId, 'sessions');
@@ -117,10 +117,10 @@ function isHeartbeatActive(sessionKey, sessionId) {
       if (files.length > 0) {
         transcriptPath = path.join(transcriptDir, files[0]);
       } else {
-        return false;
+        return { isHeartbeat: false, lastRealActivity: null };
       }
     } catch (e) {
-      return false;
+      return { isHeartbeat: false, lastRealActivity: null };
     }
   }
 
@@ -135,6 +135,10 @@ function isHeartbeatActive(sessionKey, sessionId) {
     const text = buffer.toString('utf8');
     const lines = text.split('\n').filter(l => l.trim());
 
+    let lastUserWasHeartbeat = false;
+    let lastRealTimestamp = null;
+    let userMsgCount = 0;
+
     for (let i = lines.length - 1; i >= 0; i--) {
       try {
         const entry = JSON.parse(lines[i]);
@@ -146,14 +150,33 @@ function isHeartbeatActive(sessionKey, sessionId) {
           } else if (Array.isArray(content)) {
             textContent = content.filter(c => c.type === 'text').map(c => c.text).join('\n');
           }
-          return textContent.includes('[OpenClaw heartbeat poll]') || textContent.includes('heartbeat');
+          const isHB = textContent.includes('[OpenClaw heartbeat poll]') || textContent.includes('heartbeat');
+
+          if (userMsgCount === 0) {
+            lastUserWasHeartbeat = isHB;
+          }
+
+          if (!isHB) {
+            const ts = entry.timestamp || entry.ts || entry.createdAt;
+            if (ts) {
+              lastRealTimestamp = new Date(ts).getTime();
+            }
+            break;
+          }
+          userMsgCount++;
         }
       } catch (e) { continue; }
     }
-    return false;
+
+    return { isHeartbeat: lastUserWasHeartbeat, lastRealActivity: lastRealTimestamp };
   } catch (e) {
-    return false;
+    return { isHeartbeat: false, lastRealActivity: null };
   }
+}
+
+// Backward compat shim
+function isHeartbeatActive(sessionKey, sessionId) {
+  return checkHeartbeat(sessionKey, sessionId).isHeartbeat;
 }
 
 // ---------- raw session store reading ----------
@@ -590,20 +613,29 @@ async function main() {
     }
 
     // 10. Agent status with recent session not reflected — check each agent
+    // Uses the same heartbeat filter logic as the HUD to avoid false positives
     let staleAgentWarnings = [];
     for (const hudAgent of hudAgents) {
       const aid = hudAgent.id;
-      // Find most recent session for this agent
+      // Find most recent non-heartbeat session for this agent
       let mostRecent = null;
       let mostRecentKey = null;
       for (const [key, s] of Object.entries(raw.sessions)) {
         if ((s.agentId || 'main') !== aid) continue;
         if (!s.updatedAt) continue;
-        if (!mostRecent || s.updatedAt > mostRecent) {
+        // Skip heartbeat sessions (same logic as HUD)
+        const hb = checkHeartbeat(key, s.sessionId);
+        if (hb.isHeartbeat) {
+          // Use last real activity if available
+          if (hb.lastRealActivity && (!mostRecent || hb.lastRealActivity > mostRecent)) {
+            mostRecent = hb.lastRealActivity;
+            mostRecentKey = key + ' (real-act)';
+          }
+        } else if (!mostRecent || s.updatedAt > mostRecent) {
           mostRecent = s.updatedAt;
           mostRecentKey = key;
         }
-      }
+      } // end for
 
       if (mostRecent) {
         const age = nowMs - mostRecent;
