@@ -206,9 +206,11 @@ function extractTaskDescription(text) {
 }
 
 // ---------- heartbeat detection ----------
-// Read the last few KB of a transcript to check if the last user message was a heartbeat poll
-function isHeartbeatActive(sessionKey, sessionId) {
-  if (!sessionId) return false;
+// Read the last few KB of a transcript to check if the last user message was a heartbeat poll.
+// Returns { isHeartbeat: bool, lastRealActivity: number|null }
+// lastRealActivity is the timestamp (ms) of the last non-heartbeat message, or null if N/A.
+function checkHeartbeat(sessionKey, sessionId) {
+  if (!sessionId) return { isHeartbeat: false, lastRealActivity: null };
   
   const agentId = sessionKey ? (sessionKey.split(':')[1] || 'main') : 'main';
   const transcriptDir = path.join(AGENTS_DIR, agentId, 'sessions');
@@ -219,7 +221,7 @@ function isHeartbeatActive(sessionKey, sessionId) {
     if (files.length > 0) {
       transcriptPath = path.join(transcriptDir, files[0]);
     } else {
-      return false;
+      return { isHeartbeat: false, lastRealActivity: null };
     }
   }
   
@@ -234,7 +236,11 @@ function isHeartbeatActive(sessionKey, sessionId) {
     const text = buffer.toString('utf8');
     const lines = text.split('\n').filter(l => l.trim());
     
-    // Scan from the end for the last user message
+    let lastUserWasHeartbeat = false;
+    let lastRealTimestamp = null;
+    
+    // Scan from the end for user messages
+    let userMsgCount = 0;
     for (let i = lines.length - 1; i >= 0; i--) {
       try {
         const entry = JSON.parse(lines[i]);
@@ -249,15 +255,35 @@ function isHeartbeatActive(sessionKey, sessionId) {
               .map(c => c.text)
               .join('\n');
           }
-          // Check if it's a heartbeat poll
-          return textContent.includes('[OpenClaw heartbeat poll]') || textContent.includes('heartbeat');
+          const isHB = textContent.includes('[OpenClaw heartbeat poll]') || textContent.includes('heartbeat');
+          
+          if (userMsgCount === 0) {
+            // Most recent user message
+            lastUserWasHeartbeat = isHB;
+          }
+          
+          if (!isHB) {
+            // Found a real user message — capture its timestamp
+            const ts = entry.timestamp || entry.ts || entry.createdAt;
+            if (ts) {
+              lastRealTimestamp = new Date(ts).getTime();
+            }
+            break; // Stop after first non-heartbeat user message
+          }
+          userMsgCount++;
         }
       } catch (e) { continue; }
     }
-    return false;
+    
+    return { isHeartbeat: lastUserWasHeartbeat, lastRealActivity: lastRealTimestamp };
   } catch (e) {
-    return false;
+    return { isHeartbeat: false, lastRealActivity: null };
   }
+}
+
+// Backward-compat shim for any callers expecting the old boolean return
+function isHeartbeatActive(sessionKey, sessionId) {
+  return checkHeartbeat(sessionKey, sessionId).isHeartbeat;
 }
 
 // ---------- transcript peek ----------
@@ -514,7 +540,9 @@ function buildState() {
     const isRecent = age < RECENT_THRESHOLD;
     
     // Skip sessions where the last activity was just a heartbeat poll
-    if (isHeartbeatActive(s.key, s.sessionId)) continue;
+    // (but still count them in fleet via checkHeartbeat's lastRealActivity)
+    const hbInfo = checkHeartbeat(s.key, s.sessionId);
+    if (hbInfo.isHeartbeat) continue;
     
     let status = 'completed';
     if (isActive) status = 'active';
@@ -579,8 +607,14 @@ function buildState() {
     let lastActive = null;
     for (const s of ses) {
       if (!s.updatedAt) continue;
-      // Skip sessions whose last activity was just a heartbeat
-      if (isHeartbeatActive(s.key, s.sessionId)) continue;
+      // Check if this session's last activity was a heartbeat poll
+      const hb = checkHeartbeat(s.key, s.sessionId);
+      if (hb.isHeartbeat) {
+        // Session's last user msg was a heartbeat — use the last REAL activity instead
+        const realTs = hb.lastRealActivity;
+        if (realTs && (!lastActive || realTs > lastActive)) lastActive = realTs;
+        continue;
+      }
       if (!lastActive || s.updatedAt > lastActive) lastActive = s.updatedAt;
     }
     // Also consider dispatch comms (spawn activity)
