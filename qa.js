@@ -18,6 +18,7 @@ const TOPIC_NAMES_FILE = path.join(__dirname, 'topic-names.json');
 // Thresholds (must match server.js)
 const ACTIVE_THRESHOLD = 60000;   // 60s
 const RECENT_THRESHOLD = 300000;  // 5min
+const STALE_THRESHOLD = 86400000; // 24h
 
 // ---------- helpers ----------
 
@@ -530,7 +531,8 @@ async function main() {
         const age = nowMs - lastActive;
         if (age < ACTIVE_THRESHOLD) expectedFleetStatus = 'active';
         else if (age < RECENT_THRESHOLD) expectedFleetStatus = 'recent';
-        else expectedFleetStatus = 'idle';
+        else if (age < STALE_THRESHOLD) expectedFleetStatus = 'idle';
+        else expectedFleetStatus = 'stale';
       }
       if (hudAgent.status !== expectedFleetStatus) {
         fleetStatusErrors.push({

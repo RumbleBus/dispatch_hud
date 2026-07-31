@@ -20,7 +20,26 @@ const TRANSCRIPT_DIR = MAIN_TRANSCRIPT_DIR;
 const POLL_INTERVAL = 5000;       // CLI poll every 5s
 const ACTIVE_THRESHOLD = 60000;   // 60s since last update = active
 const RECENT_THRESHOLD = 300000;  // 5min since last update = recent
+const STALE_THRESHOLD = 86400000; // 24h since last update = stale (non-responsive)
 const MAX_TASK_DESC_LEN = 300;
+
+// Agent category mapping
+const AGENT_CATEGORIES = {
+  orchestrator: ['main'],
+  planners: [],  // future: CAD semantic data planning agents
+  producers: ['writer', 'dev-lead', 'art-director', 'tax-assistant', 'devops'],
+  critics: ['philosopher', 'security-reviewer', 'editor', 'creative-reviewer', 'tax-reviewer'],
+  researchers: ['ux-researcher', 'pm-impact-analyst'],
+};
+
+// Perth AWST = UTC+8. Returns the UTC ms timestamp of the start of today in Perth.
+function getPerthDayStart() {
+  const now = new Date();
+  const perthOffsetMs = 8 * 60 * 60 * 1000;
+  const perthNow = new Date(now.getTime() + perthOffsetMs);
+  perthNow.setHours(0, 0, 0, 0);
+  return perthNow.getTime() - perthOffsetMs;
+}
 const TOPIC_NAMES_FILE = path.join(__dirname, 'topic-names.json');
 let topicNames = { topics: {}, directs: {}, groups: {}, cron: {} };
 
@@ -626,6 +645,14 @@ function buildState() {
       const age = now_ms - lastActive;
       if (age < ACTIVE_THRESHOLD) status = 'active';
       else if (age < RECENT_THRESHOLD) status = 'recent';
+      else if (age < STALE_THRESHOLD) status = 'idle';
+      else status = 'stale';
+    }
+
+    // Determine category
+    let category = 'producers';
+    for (const [cat, ids] of Object.entries(AGENT_CATEGORIES)) {
+      if (ids.includes(a.id)) { category = cat; break; }
     }
 
     return {
@@ -635,6 +662,7 @@ function buildState() {
       emoji: a.identityEmoji,
       identityName: a.identityName,
       status,
+      category,
       sessions: ses.length,
       tokens: totalTokens,
       lastActive,
@@ -675,6 +703,17 @@ function buildState() {
       activeWork: activeWork.length,
       agents: fleet.length,
     },
+    dailyTokens: (() => {
+      const dayStart = getPerthDayStart();
+      let total = 0;
+      for (const s of Object.values(sessions)) {
+        if (s.updatedAt && s.updatedAt >= dayStart) {
+          total += (s.totalTokens || 0);
+        }
+      }
+      return total;
+    })(),
+    categories: AGENT_CATEGORIES,
   };
 }
 

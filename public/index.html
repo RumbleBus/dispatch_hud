@@ -3,74 +3,174 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dispatch HUD v2</title>
+<title>Dispatch HUD</title>
 <style>
 :root {
   --bg: #0a0a0a;
   --bg-panel: #141414;
   --bg-card: #1a1a1a;
+  --bg-card-hover: #222;
   --border: #2a2a2a;
+  --border-light: #3a3a3a;
   --text: #e0e0e0;
   --text-dim: #888;
   --text-faint: #555;
-  --green: #22c55e;
+  --gold: #ffb733;
+  --gold-glow: rgba(255,183,51,0.3);
+  --purple: #9b6dff;
+  --purple-glow: rgba(155,109,255,0.2);
+  --teal: #2dd4bf;
+  --teal-glow: rgba(45,212,191,0.15);
+  --orange: #ff6b4a;
+  --orange-glow: rgba(255,107,74,0.2);
   --cyan: #22d3ee;
   --amber: #f59e0b;
   --red: #ef4444;
-  --purple: #b17bff;
-  --blue: #3b82f6;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.4; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.4; overflow: hidden; }
 
 /* layout */
 .app { display: flex; flex-direction: column; height: 100vh; }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
-.header h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
-.header .meta { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-dim); }
-.body { display: flex; flex: 1; overflow: hidden; }
-.main { flex: 1; overflow-y: auto; padding: 12px; }
-.sidebar { width: 320px; border-left: 1px solid var(--border); overflow-y: auto; padding: 12px; background: var(--bg-panel); }
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px; background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.header h1 { font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+.header-right { display: flex; gap: 20px; align-items: center; font-size: 12px; color: var(--text-dim); }
+.daily-tokens {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 4px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-family: var(--mono); font-size: 12px;
+}
+.daily-tokens .label { color: var(--text-faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.daily-tokens .value { color: var(--gold); font-weight: 600; }
 
-/* status indicators */
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-.dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.dot.recent { background: var(--cyan); }
-.dot.completed { background: var(--text-faint); }
-.dot.idle { background: var(--text-faint); }
-.dot.unknown { background: var(--amber); }
+.body { display: flex; flex: 1; overflow: hidden; }
+.main { flex: 1; overflow-y: auto; padding: 16px; }
+.sidebar { width: 320px; border-left: 1px solid var(--border); overflow-y: auto; padding: 12px; background: var(--bg-panel); flex-shrink: 0; }
+
+/* connection */
 .conn { display: flex; align-items: center; gap: 4px; }
-.conn.ok { color: var(--green); }
+.conn.ok { color: var(--teal); }
 .conn.off { color: var(--red); }
 .conn.recon { color: var(--amber); }
 
-/* task cards */
+/* fleet view */
+.fleet-container { max-width: 1200px; }
+.category-section { margin-bottom: 24px; }
+.category-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.category-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--text-dim);
+}
+.category-count { font-size: 11px; color: var(--text-faint); }
+
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+
+.agent-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; display: flex;
+  flex-direction: column; align-items: center; gap: 8px;
+  transition: background 0.2s, border-color 0.3s;
+  position: relative; overflow: hidden;
+}
+.agent-card:hover { background: var(--bg-card-hover); }
+
+/* status-colored left border */
+.agent-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; transition: background 0.3s;
+}
+.agent-card.active::before { background: var(--gold); box-shadow: 0 0 8px var(--gold-glow); }
+.agent-card.recent::before { background: var(--purple); }
+.agent-card.idle::before { background: var(--teal); opacity: 0.4; }
+.agent-card.stale::before { background: var(--orange); }
+
+/* agent card glow for active */
+.agent-card.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold-glow), 0 0 20px var(--gold-glow);
+}
+.agent-card.stale {
+  border-color: var(--orange);
+  opacity: 0.85;
+}
+
+/* icon circle */
+.agent-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border-light);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  flex-shrink: 0;
+}
+.agent-card.active .agent-icon { border-color: var(--gold); box-shadow: 0 0 12px var(--gold-glow); }
+.agent-card.recent .agent-icon { border-color: var(--purple); }
+.agent-card.idle .agent-icon { border-color: var(--teal); opacity: 0.5; }
+.agent-card.stale .agent-icon { border-color: var(--orange); }
+
+.agent-icon svg { width: 24px; height: 24px; stroke: var(--text-dim); fill: none; stroke-width: 1.5; transition: stroke 0.3s; }
+.agent-card.active .agent-icon svg { stroke: var(--gold); }
+.agent-card.recent .agent-icon svg { stroke: var(--purple); }
+.agent-card.idle .agent-icon svg { stroke: var(--teal); }
+.agent-card.stale .agent-icon svg { stroke: var(--orange); }
+
+.agent-name { font-size: 13px; font-weight: 600; text-align: center; }
+.agent-status {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.agent-card.active .agent-status { color: var(--gold); }
+.agent-card.recent .agent-status { color: var(--purple); }
+.agent-card.idle .agent-status { color: var(--teal); opacity: 0.6; }
+.agent-card.stale .agent-status { color: var(--orange); }
+
+.agent-meta {
+  display: flex; gap: 10px; font-size: 10px;
+  font-family: var(--mono); color: var(--text-faint);
+}
+.agent-meta span { white-space: nowrap; }
+
+/* empty category */
+.category-empty {
+  color: var(--text-faint); font-style: italic;
+  font-size: 12px; padding: 8px 0;
+}
+
+/* sidebar sections */
 .section { margin-bottom: 20px; }
-.section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-.task-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 8px; }
-.task-card.active { border-color: var(--green); box-shadow: 0 0 0 1px rgba(34,197,94,0.2); }
-.task-card.recent { border-color: var(--cyan); }
+.section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px;
+  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+
+/* task cards */
+.task-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px; margin-bottom: 8px;
+}
+.task-card.active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-glow); }
+.task-card.recent { border-color: var(--purple); }
 .task-card .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .task-card .task-agent { font-weight: 600; font-size: 13px; }
 .task-card .task-status { font-size: 11px; font-weight: 600; text-transform: uppercase; }
-.task-card .task-status.active { color: var(--green); }
-.task-card .task-status.recent { color: var(--cyan); }
+.task-card .task-status.active { color: var(--gold); }
+.task-card .task-status.recent { color: var(--purple); }
 .task-card .task-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; word-wrap: break-word; }
 .task-card .task-meta { display: flex; gap: 12px; font-size: 11px; color: var(--text-faint); font-family: var(--mono); }
 .task-card .task-meta span { white-space: nowrap; }
-
-/* ambient cards */
-.ambient-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
-.ambient-card .ambient-key { font-family: var(--mono); color: var(--text-dim); }
-.ambient-card .ambient-meta { display: flex; gap: 8px; font-family: var(--mono); color: var(--text-faint); font-size: 11px; }
-
-/* fleet list */
-.fleet-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 4px; margin-bottom: 2px; }
-.fleet-item:hover { background: var(--bg-card); }
-.fleet-item .fleet-name { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-.fleet-item .fleet-meta { display: flex; gap: 8px; font-size: 11px; color: var(--text-faint); font-family: var(--mono); }
 
 /* comms feed */
 .comm-item { padding: 6px 8px; border-radius: 4px; margin-bottom: 2px; font-size: 12px; }
@@ -86,26 +186,52 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 
 /* collapsible */
 .collapsible-toggle { cursor: pointer; user-select: none; }
-.collapsible-toggle::after { content: ' ▾'; color: var(--text-faint); }
-.collapsible-toggle.collapsed::after { content: ' ▸'; color: var(--text-faint); }
+.collapsible-toggle::after { content: ' \u25BE'; color: var(--text-faint); }
+.collapsible-toggle.collapsed::after { content: ' \u25B8'; color: var(--text-faint); }
 .collapsible.collapsed { display: none; }
+
+/* status dots (for sessions) */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dot.active { background: var(--gold); box-shadow: 0 0 6px var(--gold-glow); }
+.dot.recent { background: var(--purple); }
+.dot.completed { background: var(--text-faint); }
+.dot.idle { background: var(--teal); opacity: 0.4; }
+.dot.stale { background: var(--orange); }
+.dot.unknown { background: var(--amber); }
 
 /* offline overlay */
 .offline-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
 .offline-overlay .offline-box { text-align: center; }
 .offline-overlay h2 { color: var(--red); margin-bottom: 8px; }
 .offline-overlay p { color: var(--text-dim); }
-.offline-overlay code { background: var(--bg-card); padding: 4px 8px; border-radius: 4px; font-family: var(--mono); color: var(--green); }
+.offline-overlay code { background: var(--bg-card); padding: 4px 8px; border-radius: 4px; font-family: var(--mono); color: var(--teal); }
 
 /* empty state */
 .empty { color: var(--text-faint); font-style: italic; padding: 8px; font-size: 12px; }
+
+/* scrollbars */
+.main::-webkit-scrollbar, .sidebar::-webkit-scrollbar { width: 6px; }
+.main::-webkit-scrollbar-thumb, .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.main::-webkit-scrollbar-track, .sidebar::-webkit-scrollbar-track { background: transparent; }
+
+/* responsive: stack sidebar on narrow screens */
+@media (max-width: 900px) {
+  .body { flex-direction: column; }
+  .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
+}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
-    <h1>DISPATCH HUD v2</h1>
-    <div class="meta">
+    <div class="header-left">
+      <h1>DISPATCH HUD</h1>
+    </div>
+    <div class="header-right">
+      <div class="daily-tokens">
+        <span class="label">Today</span>
+        <span class="value" id="daily-tokens">0</span>
+      </div>
       <span id="counts">0 sessions | 0 agents</span>
       <span id="version"></span>
       <span id="conn" class="conn recon">CONNECTING</span>
@@ -113,10 +239,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   </div>
   <div class="body">
     <div class="main" id="main-panel">
-      <div class="section">
-        <div class="section-title">Active Work <span id="work-count"></span></div>
-        <div id="active-work"><div class="empty">No active work</div></div>
-      </div>
+      <div class="fleet-container" id="fleet-container"></div>
       <div class="section">
         <div class="section-title collapsible-toggle collapsed" id="sessions-toggle">All Sessions</div>
         <div id="sessions" class="collapsible collapsed"></div>
@@ -124,8 +247,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
     </div>
     <div class="sidebar">
       <div class="section">
-        <div class="section-title">Fleet</div>
-        <div id="fleet"></div>
+        <div class="section-title">Active Work <span id="work-count"></span></div>
+        <div id="active-work"><div class="empty">No active work</div></div>
       </div>
       <div class="section">
         <div class="section-title">Comms Feed</div>
@@ -141,15 +264,141 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   </div>
 </div>
 
+<!-- SVG icon definitions -->
+<svg style="display:none">
+  <defs>
+    <!-- headset (Dispatch/orchestrator) -->
+    <symbol id="icon-headset" viewBox="0 0 24 24">
+      <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
+      <rect x="3" y="14" width="4" height="6" rx="1"/>
+      <rect x="17" y="14" width="4" height="6" rx="1"/>
+      <path d="M20 18v0a3 3 0 0 1-3 3h-4"/>
+    </defs>
+
+    <!-- code branch (dev-lead) -->
+    <symbol id="icon-code" viewBox="0 0 24 24">
+      <circle cx="6" cy="6" r="2.5"/>
+      <circle cx="6" cy="18" r="2.5"/>
+      <circle cx="18" cy="8" r="2.5"/>
+      <path d="M6 8.5v7M8 7l8 0M8 19l8-7.5"/>
+    </defs>
+
+    <!-- gear (devops) -->
+    <symbol id="icon-gear" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>
+    </defs>
+
+    <!-- quill (writer) -->
+    <symbol id="icon-quill" viewBox="0 0 24 24">
+      <path d="M4 20s4-1 8-5 6-9 6-9-5 2-9 6-5 8-5 8z"/>
+      <path d="M4 20l4-4M8 16l2 2"/>
+    </defs>
+
+    <!-- palette (art-director) -->
+    <symbol id="icon-palette" viewBox="0 0 24 24">
+      <path d="M12 3a9 9 0 1 0 0 18c1 0 2-1 2-2s-1-2 0-2h3a4 4 0 0 0 4-4c0-5-4-8-9-8z"/>
+      <circle cx="8" cy="10" r="1"/>
+      <circle cx="12" cy="7" r="1"/>
+      <circle cx="16" cy="10" r="1"/>
+    </defs>
+
+    <!-- document (tax-assistant) -->
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M6 2h8l4 4v16H6z"/>
+      <path d="M14 2v4h4"/>
+      <path d="M9 12h6M9 16h6"/>
+    </defs>
+
+    <!-- shield (security-reviewer) -->
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2l8 3v6c0 5-3.5 8-8 11-4.5-3-8-6-8-11V5z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </defs>
+
+    <!-- pencil (editor) -->
+    <symbol id="icon-pencil" viewBox="0 0 24 24">
+      <path d="M4 20l4-1L20 7l-3-3L5 16z"/>
+      <path d="M14 6l3 3"/>
+    </defs>
+
+    <!-- eye (creative-reviewer) -->
+    <symbol id="icon-eye" viewBox="0 0 24 24">
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </defs>
+
+    <!-- checkmark-document (tax-reviewer) -->
+    <symbol id="icon-check-doc" viewBox="0 0 24 24">
+      <path d="M6 2h8l4 4v16H6z"/>
+      <path d="M14 2v4h4"/>
+      <path d="M9 14l2 2 4-4"/>
+    </defs>
+
+    <!-- compass (ux-researcher) -->
+    <symbol id="icon-compass" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M16 8l-2 6-6 2 2-6z"/>
+    </defs>
+
+    <!-- bar chart (pm-impact-analyst) -->
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M4 20V4M4 20h16"/>
+      <rect x="7" y="14" width="3" height="6"/>
+      <rect x="12" y="10" width="3" height="10"/>
+      <rect x="17" y="6" width="3" height="14"/>
+    </defs>
+
+    <!-- bust (philosopher/council) -->
+    <symbol id="icon-bust" viewBox="0 0 24 24">
+      <circle cx="12" cy="7" r="4"/>
+      <path d="M5 22c0-5 3-8 7-8s7 3 7 8"/>
+      <path d="M8 5c0-2 2-3 4-3s4 1 4 3"/>
+    </defs>
+
+    <!-- map/plan (planners placeholder) -->
+    <symbol id="icon-map" viewBox="0 0 24 24">
+      <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/>
+      <path d="M9 4v14M15 6v14"/>
+    </defs>
+  </defs>
+</svg>
+
 <script>
 var es = null;
 var reconnectTimer = null;
+
+// Agent icon mapping
+var AGENT_ICONS = {
+  'main': 'icon-headset',
+  'dev-lead': 'icon-code',
+  'devops': 'icon-gear',
+  'writer': 'icon-quill',
+  'art-director': 'icon-palette',
+  'tax-assistant': 'icon-document',
+  'security-reviewer': 'icon-shield',
+  'editor': 'icon-pencil',
+  'creative-reviewer': 'icon-eye',
+  'tax-reviewer': 'icon-check-doc',
+  'philosopher': 'icon-bust',
+  'ux-researcher': 'icon-compass',
+  'pm-impact-analyst': 'icon-chart',
+};
+
+// Category display order and labels
+var CATEGORY_ORDER = ['orchestrator', 'planners', 'producers', 'critics', 'researchers'];
+var CATEGORY_LABELS = {
+  orchestrator: 'Orchestrator',
+  planners: 'Planners',
+  producers: 'Producers',
+  critics: 'Critics',
+  researchers: 'Researchers',
+};
 
 function connect() {
   var conn = document.getElementById('conn');
   conn.className = 'conn recon';
   conn.textContent = 'CONNECTING';
-
   es = new EventSource('/stream');
 
   es.addEventListener('state', function(e) {
@@ -222,7 +471,13 @@ function render(data) {
     (c.activeWork || 0) + ' active';
   document.getElementById('work-count').textContent = c.activeWork ? ' (' + c.activeWork + ')' : '';
 
-  // Active Work (unified panel)
+  // Daily tokens (Perth calendar day)
+  document.getElementById('daily-tokens').textContent = fmtTokens(data.dailyTokens || 0) + ' tok';
+
+  // Fleet view — grouped by category
+  renderFleet(data.agents || []);
+
+  // Active Work
   var workEl = document.getElementById('active-work');
   var work = data.activeWork || [];
   if (work.length === 0) {
@@ -230,7 +485,7 @@ function render(data) {
   } else {
     workEl.innerHTML = work.map(function(w) {
       var cls = w.status === 'active' ? 'active' : 'recent';
-      var icon = w.isSubagent ? '🤖' : (w.kind === 'cron' ? '⏰' : (w.kind === 'telegram' ? '💬' : '📡'));
+      var icon = w.isSubagent ? '\u{1F916}' : (w.kind === 'cron' ? '\u23F0' : (w.kind === 'telegram' ? '\u{1F4AC}' : '\u{1F4E1}');
       return '<div class="task-card ' + cls + '">' +
         '<div class="task-header">' +
           '<span class="task-agent">' + icon + ' ' + escapeHtml(w.agentId || 'main') + '</span>' +
@@ -247,22 +502,6 @@ function render(data) {
     }).join('');
   }
 
-  // Fleet
-  var fleetEl = document.getElementById('fleet');
-  var fleet = data.agents || [];
-  fleetEl.innerHTML = fleet.map(function(a) {
-    return '<div class="fleet-item">' +
-      '<span class="fleet-name">' +
-        '<span class="dot ' + a.status + '"></span>' +
-        (a.emoji || '') + ' ' + escapeHtml(a.name) +
-      '</span>' +
-      '<span class="fleet-meta">' +
-        '<span>' + (a.lastActiveAgo || 'never') + '</span>' +
-        '<span>' + fmtTokens(a.tokens) + '</span>' +
-      '</span>' +
-    '</div>';
-  }).join('');
-
   // Comms
   var commsEl = document.getElementById('comms');
   var comms = data.comms || [];
@@ -271,7 +510,7 @@ function render(data) {
   } else {
     commsEl.innerHTML = comms.map(function(c) {
       return '<div class="comm-item">' +
-        '<span class="comm-from">' + escapeHtml(c.from) + '</span> → ' +
+        '<span class="comm-from">' + escapeHtml(c.from) + '</span> \u2192 ' +
         '<span class="comm-to">' + escapeHtml(c.to) + '</span> ' +
         '<span class="comm-time">' + (c.ago || '') + '</span>' +
       '</div>';
@@ -291,6 +530,53 @@ function render(data) {
       '</span>' +
     '</div>';
   }).join('');
+}
+
+function renderFleet(fleet) {
+  var container = document.getElementById('fleet-container');
+  var byCategory = {};
+  CATEGORY_ORDER.forEach(function(cat) { byCategory[cat] = []; });
+  fleet.forEach(function(a) {
+    var cat = a.category || 'producers';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(a);
+  });
+
+  var html = '';
+  CATEGORY_ORDER.forEach(function(cat) {
+    var agents = byCategory[cat] || [];
+    var label = CATEGORY_LABELS[cat] || cat;
+    html += '<div class="category-section">';
+    html += '<div class="category-header">' +
+      '<span class="category-label">' + label + '</span>' +
+      '<span class="category-count">' + agents.length + '</span>' +
+    '</div>';
+
+    if (agents.length === 0) {
+      html += '<div class="category-empty">No agents configured</div>';
+    } else {
+      html += '<div class="agent-grid">';
+      agents.forEach(function(a) {
+        var iconId = AGENT_ICONS[a.id] || 'icon-headset';
+        html += '<div class="agent-card ' + (a.status || 'idle') + '">' +
+          '<div class="agent-icon">' +
+            '<svg><use href="#' + iconId + '"/></svg>' +
+          '</div>' +
+          '<div class="agent-name">' + escapeHtml(a.identityName || a.name) + '</div>' +
+          '<div class="agent-status">' + (a.status || 'idle') + '</div>' +
+          '<div class="agent-meta">' +
+            '<span>' + a.sessions + ' sess</span>' +
+            '<span>' + fmtTokens(a.tokens) + '</span>' +
+            '<span>' + (a.lastActiveAgo || 'never') + '</span>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
 }
 
 function escapeHtml(text) {
