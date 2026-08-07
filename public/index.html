@@ -2022,7 +2022,7 @@ function renderOrbit(data) {
   var catLabelR = ORBIT_R2 + L.hexR + 35;
   var catLabels = categoryLabelPositions(placed, catLabelR, layoutCenter.x, layoutCenter.y);
   catLabels.forEach(function(cl) {
-    var cap = makeSVG('text', { x: cl.x.toFixed(1), y: cl.y.toFixed(1), 'text-anchor': 'middle', class: 'osec-cap' });
+    var cap = makeSVG('text', { x: cl.x.toFixed(1), y: (cl.y + 30).toFixed(1), 'text-anchor': 'middle', class: 'osec-cap' });
     cap.textContent = ZONE_CAPS[cl.cat] || cl.cat.toUpperCase();
     // Category label color at 60% opacity (use style to override CSS)
     var color = ZONE_COLORS[cl.cat] || 'var(--dim)';

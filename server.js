@@ -1331,8 +1331,8 @@ async function buildState() {
         if (s.key && s.key.includes('reasoning-probe')) continue;
         // Skip cron sessions — not shown as orbit cores
         if (s.key && s.key.includes('cron:')) continue;
-        // Skip internal main session — redundant with Telegram DM
-        if (s.key === 'agent:main:main') continue;
+        // Show agent:main:main as an active core (it's the real activity indicator)
+        // The Telegram DM session key doesn't update on every message, but main:main does
 
         // Check heartbeat for this session
         const hb = checkHeartbeat(s.key, s.sessionId);
