@@ -32,41 +32,87 @@ if echo "$HTML" | grep -q '</html>'; then
 else
   fail "Missing </html>"
 fi
-if echo "$HTML" | grep -q 'DISPATCH'; then
-  pass "Contains DISPATCH"
+if echo "$HTML" | grep -qi 'dispatch'; then
+  pass "Contains Dispatch text"
 else
-  fail "Missing DISPATCH text"
+  fail "Missing Dispatch text"
 fi
 
 # 3. Client-side JavaScript is syntactically valid
 echo "--- Client JS syntax ---"
-SCRIPT=$(echo "$HTML" | python3 -c "
+# Extract script blocks and validate each
+JS_RESULT=$(echo "$HTML" | python3 -c "
 import sys, re
 h = sys.stdin.read()
-m = re.search(r'<script>(.*?)</script>', h, re.DOTALL)
-print(m.group(1) if m else '')
+scripts = re.findall(r'<script>(.*?)</script>', h, re.DOTALL)
+if not scripts:
+    print('NO_SCRIPT')
+else:
+    for i, s in enumerate(scripts):
+        print(f'SCRIPT_{i}:{len(s)}bytes')
 " 2>/dev/null || true)
-if [ -n "$SCRIPT" ]; then
-  JS_OK=$(node -e "
-const s = require('child_process').execSync('cat',{input:process.argv[1],encoding:'utf8',maxBuffer:1024*1024});
-try { new Function(process.argv[1]); console.log('ok'); } catch(e) { console.log('fail:'+e.message); }
-" "$SCRIPT" 2>/dev/null || true)
-  if echo "$JS_OK" | grep -q 'ok'; then
+if echo "$JS_RESULT" | grep -q 'NO_SCRIPT'; then
+  fail "No script block found in HTML"
+elif echo "$JS_RESULT" | grep -q 'SCRIPT_'; then
+  # Write each script to a temp file and check syntax
+  echo "$HTML" | python3 -c "
+import sys, re
+h = sys.stdin.read()
+scripts = re.findall(r'<script>(.*?)</script>', h, re.DOTALL)
+for i, s in enumerate(scripts):
+    with open(f'/tmp/hud-js-check-{i}.js', 'w') as f:
+        f.write(s)
+" 2>/dev/null
+  JS_ERRORS=0
+  for f in /tmp/hud-js-check-*.js; do
+    if ! node --check "$f" 2>/dev/null; then
+      JS_ERRORS=$((JS_ERRORS+1))
+    fi
+  done
+  rm -f /tmp/hud-js-check-*.js
+  if [ "$JS_ERRORS" -eq 0 ]; then
     pass "Client JS syntax valid"
   else
-    fail "Client JS syntax error: $JS_OK"
+    fail "Client JS syntax error in $JS_ERRORS script block(s)"
   fi
 else
-  fail "No script block found in HTML"
+  fail "Could not extract script blocks"
 fi
 
-# 4. SSE stream delivers data
+# 4. SSE stream delivers data AND is complete, parseable JSON
 echo "--- SSE stream ---"
-SSE=$(curl -s --max-time 6 "$HOST/stream" 2>/dev/null || true)
+SSE=$(curl -s --no-buffer --max-time 8 "$HOST/stream" 2>/dev/null || true)
 if echo "$SSE" | grep -q 'event: state'; then
   pass "SSE stream delivers state events"
 else
   fail "SSE stream missing state events"
+fi
+
+# Extract the data payload and verify it parses as complete JSON
+SSE_JSON=$(echo "$SSE" | python3 -c "
+import sys, re, json
+data = sys.stdin.read()
+# Find the first complete data: line
+for line in data.split('\n'):
+    if line.startswith('data: '):
+        payload = line[6:]
+        try:
+            parsed = json.loads(payload)
+            print('OK:' + str(len(parsed.get('agents',[]))) + ' agents')
+        except json.JSONDecodeError as e:
+            print('JSON_ERROR:' + str(e))
+        break
+" 2>/dev/null || true)
+if echo "$SSE_JSON" | grep -q '^OK:'; then
+  AGENT_COUNT=$(echo "$SSE_JSON" | sed 's/^OK://;s/ agents//')
+  pass "SSE data payload parses as valid JSON ($AGENT_COUNT agents)"
+  if [ "$AGENT_COUNT" -ge 5 ]; then
+    pass "Agent count >= 5 ($AGENT_COUNT)"
+  else
+    fail "Agent count too low ($AGENT_COUNT, expected >= 5)"
+  fi
+else
+  fail "SSE data payload does not parse as valid JSON: $SSE_JSON"
 fi
 
 # 5. State contains real agents

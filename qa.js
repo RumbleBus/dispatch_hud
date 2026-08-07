@@ -549,6 +549,7 @@ async function main() {
 
     // 8. Fleet status check — verify agent fleet statuses match raw data
     // Skip orchestrator (main) topic cards — they have per-topic status, not per-agent
+    const hudActiveWork = hudData.activeWork || [];
     let fleetStatusErrors = [];
     const seenAgents = new Set();
     for (const hudAgent of hudAgents) {
@@ -557,12 +558,27 @@ async function main() {
       if (seenAgents.has(aid)) continue;
       seenAgents.add(aid);
       // Recompute lastActive from raw data
+      // 1. Check sessions where agentId matches
       let lastActive = null;
       for (const [key, s] of Object.entries(raw.sessions)) {
         if ((s.agentId || 'main') !== aid) continue;
         if (!s.updatedAt) continue;
         if (isHeartbeatActive(s.key, s.sessionId)) continue;
         if (!lastActive || s.updatedAt > lastActive) lastActive = s.updatedAt;
+      }
+      // 2. Also check subagent sessions dispatched TO this agent
+      // The server tracks these via transcript peeking (agentLastActivity)
+      // Subagent sessions are stored with agentId='main' (the spawner) but
+      // the server attributes their activity to the target agent
+      for (const [key, s] of Object.entries(raw.sessions)) {
+        if (s.kind !== 'subagent' && !(key && key.includes('subagent'))) continue;
+        if (!s.updatedAt) continue;
+        // Check if this subagent was dispatched to this agent
+        // We can't peek transcripts in QA, so use activeWork data from HUD
+        const hudWork = hudActiveWork.find(w => w.agentId === aid && w.key === key);
+        if (hudWork && (!lastActive || s.updatedAt > lastActive)) {
+          lastActive = s.updatedAt;
+        }
       }
 
       // Fleet status uses 'idle' for old/no activity (not 'completed')

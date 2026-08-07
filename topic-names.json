@@ -19,10 +19,13 @@
     "3052": "Craton Intelligence GTM",
     "3062": "Topic 3062",
     "3151": "Topic 3151",
-    "3248": "Notes Sync"
+    "3248": "Notes Sync",
+    "3592": "CAD Spatial Semantics",
+    "3603": "CRATON PR-FAQ v5",
+    "3648": "Dispatch HUD"
   },
   "directs": {
-    "5076496246": "Eric (Direct)",
+    "5076496246": "Eric",
     "5443978649": "Authorized User 2"
   },
   "groups": {

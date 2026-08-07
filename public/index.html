@@ -4,245 +4,831 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dispatch HUD</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
 <style>
-/* ─── Albert Console aesthetic ─── */
+/* ─── Albert Console aesthetic (from actual source CSS) ─── */
+
 :root {
-  --bg: #0a1424;
-  --bg-panel: #0d1a2e;
-  --bg-card: #0f1d33;
-  --bg-card-hover: #12223a;
-  --bg-sidebar: #0b1628;
-  --border: #1a3050;
-  --border-cyan: #00d4ff;
-  --text: #c8d6e5;
-  --text-dim: #6b8299;
-  --text-faint: #3d5a73;
-  --gold: #f5c518;
-  --gold-glow: rgba(245,197,24,0.15);
-  --purple: #9b6dff;
-  --purple-glow: rgba(155,109,255,0.1);
-  --teal: #2dd4bf;
-  --teal-glow: rgba(45,212,191,0.08);
-  --orange: #ff6b4a;
-  --orange-glow: rgba(255,107,74,0.12);
-  --cyan: #00d4ff;
-  --amber: #f5c518;
-  --red: #ef4444;
-  --green: #22c55e;
-  --font: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'IBM Plex Mono', 'Consolas', monospace;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 12px;
-  line-height: 1.4;
-  overflow: hidden;
-  background-image:
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  /* color */
+  --bg-page: #03080d;
+  --bg-panel: #050b12;
+  --bg-panel-2: #0a141c;
+  --cyan: #22d3ee;
+  --cyan-hi: #00e5ff;
+  --gold: #f5b301;
+  --gold-hi: #ffb000;
+  --text: #cfe9f2;
+  --dim: #5b7a8a;
+  --green: #2fd67b;
+  --red: #ff5d5d;
+  --violet: #b17bff;
+  --orange: #f97316;
+
+  --cyan-03: rgba(34, 211, 238, 0.03);
+  --cyan-06: rgba(34, 211, 238, 0.06);
+  --cyan-10: rgba(34, 211, 238, 0.10);
+  --cyan-16: rgba(34, 211, 238, 0.16);
+  --cyan-25: rgba(34, 211, 238, 0.25);
+  --cyan-45: rgba(34, 211, 238, 0.45);
+  --cyan-70: rgba(34, 211, 238, 0.70);
+  --gold-10: rgba(245, 179, 1, 0.10);
+  --gold-20: rgba(245, 179, 1, 0.20);
+  --gold-45: rgba(245, 179, 1, 0.45);
+  --violet-06: rgba(177, 123, 255, 0.06);
+  --violet-12: rgba(177, 123, 255, 0.12);
+  --violet-25: rgba(177, 123, 255, 0.25);
+  --violet-45: rgba(177, 123, 255, 0.45);
+  --violet-70: rgba(177, 123, 255, 0.70);
+  --orange-10: rgba(249, 115, 22, 0.10);
+  --orange-45: rgba(249, 115, 22, 0.45);
+
+  --panel-fill: linear-gradient(165deg, rgba(10, 26, 38, 0.66), rgba(5, 11, 18, 0.88));
+  --edge: 1px solid var(--cyan-25);
+  --bloom: 0 0 18px rgba(0, 229, 255, 0.10), 0 0 2px rgba(0, 229, 255, 0.28),
+           inset 0 0 24px rgba(0, 229, 255, 0.03);
+  --bloom-gold: 0 0 20px rgba(255, 176, 0, 0.16), 0 0 2px rgba(255, 176, 0, 0.40),
+                inset 0 0 24px rgba(255, 176, 0, 0.04);
+  --bloom-violet: 0 0 18px rgba(177, 123, 255, 0.10), 0 0 2px rgba(177, 123, 255, 0.28),
+                  inset 0 0 24px rgba(177, 123, 255, 0.03);
+  --bloom-orange: 0 0 18px rgba(249, 115, 22, 0.10), 0 0 2px rgba(249, 115, 22, 0.28),
+                  inset 0 0 24px rgba(249, 115, 22, 0.03);
+
+  /* type */
+  --font: 'IBM Plex Mono', 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  --fs-xs: 0.625rem;
+  --fs-sm: 0.72rem;
+  --fs-md: 0.8125rem;
+  --fs-lg: 1rem;
+  --fs-xl: 1.375rem;
+  --w-light: 300;
+  --w-reg: 400;
+  --w-bold: 700;
+  --track: 0.14em;
+  --track-wide: 0.28em;
+
+  /* spacing / shape */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 36px;
+  --radius: 3px;
+  --bracket: 12px;
+
+  /* motion */
+  --tr-fast: 150ms ease;
+  --tr-med: 300ms ease;
+  --pulse: 1.2s;
+
+  color-scheme: dark;
 }
 
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: var(--w-reg);
+  color: var(--text);
+  background-color: var(--bg-page);
+  overflow: hidden;
+}
+
+/* fine hairline grid + soft cyan vignette */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 700px at 50% 12%, var(--cyan-06), transparent 65%),
+    repeating-linear-gradient(0deg, var(--cyan-03) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(90deg, var(--cyan-03) 0 1px, transparent 1px 88px);
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* faint scanline overlay (lightweight — 4px interval, low opacity) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0 1px, transparent 1px 4px);
+  opacity: 0.3;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+::selection { background: var(--cyan-25); }
+* { scrollbar-width: thin; scrollbar-color: var(--cyan-25) transparent; }
+
+/* ─── Panels + corner brackets (Albert pattern) ─── */
+.panel {
+  position: relative;
+  background: var(--panel-fill);
+  border: var(--edge);
+  border-radius: var(--radius);
+  box-shadow: var(--bloom);
+}
+.panel::before, .panel::after, .c4::before, .c4::after {
+  content: "";
+  position: absolute;
+  width: var(--bracket);
+  height: var(--bracket);
+  border: 1px solid var(--cyan-70);
+  pointer-events: none;
+}
+.panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.panel::after  { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+.c4 { position: absolute; inset: 0; pointer-events: none; display: block; }
+.c4::before { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+.c4::after  { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+
 /* ─── Layout ─── */
-.app { display: flex; height: 100vh; }
+.app { display: flex; height: 100vh; position: relative; z-index: 1; }
 
 /* ─── Sidebar Nav ─── */
 .sidebar-nav {
-  width: 52px; background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  width: 52px; background: linear-gradient(180deg, var(--bg-panel), var(--bg-page));
+  border-right: var(--edge);
   display: flex; flex-direction: column; align-items: center;
-  padding: 12px 0; flex-shrink: 0; gap: 4px;
+  padding: var(--s4) 0; flex-shrink: 0; gap: var(--s3);
 }
 .nav-logo {
-  width: 32px; height: 32px; border: 1px solid var(--border-cyan);
-  border-radius: 2px; display: flex; align-items: center; justify-content: center;
-  margin-bottom: 12px; color: var(--cyan); font-size: 14px; font-weight: 700;
+  width: 32px; height: 32px; border: 1px solid var(--cyan-45);
+  border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
+  margin-bottom: var(--s3); color: var(--cyan-hi); font-size: 14px; font-weight: var(--w-bold);
 }
 .nav-item {
-  width: 36px; height: 36px; border-radius: 2px;
+  width: 36px; height: 36px; border-radius: var(--radius);
   display: flex; align-items: center; justify-content: center;
-  color: var(--text-faint); cursor: pointer; font-size: 16px;
-  transition: color 0.15s, background 0.15s; position: relative;
+  color: var(--dim); cursor: pointer; font-size: 16px;
+  border: 1px solid transparent;
+  transition: color var(--tr-fast), border-color var(--tr-fast), background var(--tr-fast);
+  position: relative;
 }
-.nav-item:hover { color: var(--cyan); background: rgba(0,212,255,0.08); }
-.nav-item.active { color: var(--cyan); }
+.nav-item:hover { color: var(--cyan); border-color: var(--cyan-16); background: var(--cyan-03); }
+.nav-item.active {
+  color: var(--cyan-hi); border-color: var(--cyan-45); background: var(--cyan-06);
+  box-shadow: 0 0 12px rgba(0,229,255,0.12), inset 0 0 10px rgba(0,229,255,0.05);
+}
 .nav-item.active::before {
   content: ''; position: absolute; left: -1px; top: 6px; bottom: 6px;
-  width: 2px; background: var(--cyan);
+  width: 2px; background: var(--cyan-hi);
 }
 
 /* ─── Content ─── */
-.content {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden;
-}
+.content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ─── Header ─── */
 .header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 16px; background: var(--bg-panel);
-  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  padding: 0 var(--s4); background: linear-gradient(180deg, var(--bg-panel-2), var(--bg-panel));
+  border-bottom: var(--edge); flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--cyan-10), 0 6px 24px rgba(0,229,255,0.05);
 }
-.header-left { display: flex; align-items: center; gap: 16px; }
+.header-left { display: flex; align-items: center; gap: var(--s5); }
 .header-left h1 {
-  font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
-  color: var(--cyan);
+  font-size: var(--fs-lg); font-weight: var(--w-bold); letter-spacing: var(--track-wide);
+  text-transform: uppercase; color: var(--text);
 }
-.header-left .h1-sep { color: var(--text-faint); }
-.header-right { display: flex; gap: 16px; align-items: center; }
+.header-left h1 span { color: var(--cyan-hi); font-weight: var(--w-light); margin-left: var(--s1); }
+.header-left .h1-sep { color: var(--dim); }
+.header-right { display: flex; gap: var(--s4); align-items: center; }
 
 .daily-tokens {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--text-dim);
+  display: flex; align-items: center; gap: var(--s2);
+  font-size: var(--fs-xs); color: var(--dim); letter-spacing: var(--track);
 }
-.daily-tokens .value { color: var(--amber); font-weight: 600; }
+.daily-tokens .value { color: var(--gold-hi); font-weight: var(--w-bold); font-variant-numeric: tabular-nums; }
 
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-.status-dot.online { background: var(--green); }
-.status-dot.offline { background: var(--red); }
-.status-dot.reconnecting { background: var(--amber); }
+.status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.status-dot.online {
+  background: var(--cyan-hi);
+  box-shadow: 0 0 8px var(--cyan-hi), 0 0 18px var(--cyan-45);
+  animation: livepulse var(--pulse) ease-in-out infinite;
+}
+.status-dot.offline { background: var(--red); opacity: 0.55; box-shadow: 0 0 6px rgba(255,93,93,0.45); }
+.status-dot.reconnecting { background: var(--gold); opacity: 0.7; }
 
-.header-counts { display: flex; gap: 12px; font-size: 11px; color: var(--text-faint); }
+.header-counts { display: flex; gap: var(--s3); font-size: var(--fs-xs); color: var(--dim); letter-spacing: var(--track); }
 .header-counts span { white-space: nowrap; }
-.header-counts .num { color: var(--text-dim); }
+.header-counts .num { color: var(--cyan-hi); font-variant-numeric: tabular-nums; }
 
 /* ─── Main Body ─── */
 .body { display: flex; flex: 1; overflow: hidden; }
-.main { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.main { flex: 1; overflow-y: auto; padding: var(--s4); }
 .sidebar {
-  width: 300px; border-left: 1px solid var(--border);
-  overflow-y: auto; padding: 12px; background: var(--bg-panel); flex-shrink: 0;
+  width: 300px; border-left: var(--edge);
+  overflow-y: auto; padding: var(--s3);
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-page));
+  flex-shrink: 0;
 }
 
 /* ─── Fleet Categories ─── */
-.category-section { margin-bottom: 28px; }
+.category-section { margin-bottom: var(--s6); }
 .category-header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
-  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3);
+  padding-bottom: var(--s1); border-bottom: var(--edge);
 }
 .category-header .slash {
-  color: var(--text-faint); font-size: 13px; font-weight: 700;
+  color: var(--dim); font-size: var(--fs-sm); font-weight: var(--w-bold);
 }
 .category-label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 2px; color: var(--cyan);
+  font-size: var(--fs-sm); font-weight: var(--w-bold); text-transform: uppercase;
+  letter-spacing: var(--track-wide); color: var(--cyan);
 }
-.category-count { font-size: 11px; color: var(--text-faint); }
+.category-count { font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums; }
 
-/* ─── Agent Cards ─── */
-.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+/* ─── Agent Cards (Albert panel pattern with c4 brackets) ─── */
+.fleet-container {
+  display: flex; flex-direction: column; gap: var(--s4);
+  contain: layout style paint;
+}
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s4);
+}
 
 .agent-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 0; padding: 12px; display: flex; flex-direction: column;
-  gap: 10px; cursor: default; transition: background 0.15s, border-color 0.3s;
+  display: flex; flex-direction: column; gap: var(--s3);
+  padding: var(--s4);
+  transition: box-shadow var(--tr-med), border-color var(--tr-med);
+  position: relative;
+  background: var(--panel-fill);
+  border: var(--edge);
+  border-radius: var(--radius);
+  box-shadow: var(--bloom);
+}
+.agent-card:hover {
+  box-shadow: 0 0 24px rgba(0,229,255,0.15), 0 0 2px rgba(0,229,255,0.35),
+              inset 0 0 24px rgba(0,229,255,0.05);
+}
+
+/* Status variants */
+.agent-card.active { border-color: var(--gold-45); box-shadow: var(--bloom-gold); }
+.agent-card.recent { border-color: var(--violet-45); box-shadow: var(--bloom-violet); }
+.agent-card.idle { border-color: var(--cyan-25); }
+.agent-card.stale { border-color: var(--orange-45); box-shadow: var(--bloom-orange); opacity: 0.85; }
+
+/* Corner bracket colors per status */
+.agent-card::before, .agent-card::after,
+.agent-card .c4::before, .agent-card .c4::after { border-color: var(--cyan-70); }
+.agent-card.active::before, .agent-card.active::after,
+.agent-card.active .c4::before, .agent-card.active .c4::after { border-color: var(--gold-45); }
+.agent-card.recent::before, .agent-card.recent::after,
+.agent-card.recent .c4::before, .agent-card.recent .c4::after { border-color: var(--violet-45); }
+.agent-card.stale::before, .agent-card.stale::after,
+.agent-card.stale .c4::before, .agent-card.stale .c4::after { border-color: var(--orange-45); }
+.agent-card.idle::before, .agent-card.idle::after,
+.agent-card.idle .c4::before, .agent-card.idle .c4::after { border-color: var(--cyan-25); opacity: 0.6; }
+
+.agent-card-top { display: flex; align-items: center; gap: var(--s3); }
+
+.agent-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--cyan-45); flex-shrink: 0;
+  transition: border-color var(--tr-med), box-shadow var(--tr-med);
   position: relative;
 }
-.agent-card:hover { background: var(--bg-card-hover); }
-.agent-card.active { border-color: var(--gold); }
-.agent-card.recent { border-color: var(--purple); }
-.agent-card.idle { border-color: var(--border); }
-.agent-card.stale { border-color: var(--orange); opacity: 0.8; }
-
-.agent-card-top { display: flex; align-items: center; gap: 10px; }
-.agent-icon {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  border: 1.5px solid var(--border); flex-shrink: 0;
-  transition: border-color 0.3s, box-shadow 0.3s;
+.agent-icon::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--cyan-06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
 }
-.agent-card.active .agent-icon { border-color: var(--gold); box-shadow: 0 0 8px var(--gold-glow); }
-.agent-card.recent .agent-icon { border-color: var(--purple); }
-.agent-card.idle .agent-icon { border-color: var(--text-faint); }
-.agent-card.stale .agent-icon { border-color: var(--orange); }
+.agent-card.active .agent-icon { border-color: var(--gold-hi); box-shadow: 0 0 12px rgba(255,176,0,0.2); }
+.agent-card.active .agent-icon::before { background: radial-gradient(circle, rgba(255,176,0,0.15) 0%, transparent 70%); }
+.agent-card.recent .agent-icon { border-color: var(--violet-45); }
+.agent-card.recent .agent-icon::before { background: radial-gradient(circle, var(--violet-12) 0%, transparent 70%); }
+.agent-card.idle .agent-icon { border-color: var(--dim); }
+.agent-card.stale .agent-icon { border-color: var(--orange-45); }
+.agent-card.stale .agent-icon::before { background: radial-gradient(circle, var(--orange-10) 0%, transparent 70%); }
 
-.agent-icon svg { width: 18px; height: 18px; stroke: var(--text-dim); fill: none; stroke-width: 1.5; transition: stroke 0.3s; }
-.agent-card.active .agent-icon svg { stroke: var(--gold); }
-.agent-card.recent .agent-icon svg { stroke: var(--purple); }
-.agent-card.idle .agent-icon svg { stroke: var(--text-faint); }
+.agent-icon svg { width: 20px; height: 20px; stroke: var(--cyan); fill: none; stroke-width: 1.4; transition: stroke var(--tr-med); }
+.agent-card.active .agent-icon svg { stroke: var(--gold-hi); }
+.agent-card.recent .agent-icon svg { stroke: var(--violet); }
+.agent-card.idle .agent-icon svg { stroke: var(--dim); }
 .agent-card.stale .agent-icon svg { stroke: var(--orange); }
 
 .agent-card-info { min-width: 0; }
-.agent-name { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text); }
-.agent-model { font-size: 10px; color: var(--text-faint); }
+.agent-name {
+  font-size: var(--fs-sm); font-weight: var(--w-bold); text-transform: uppercase;
+  letter-spacing: var(--track); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agent-model { font-size: var(--fs-xs); color: var(--dim); letter-spacing: var(--track); }
 
 .agent-card-bottom { display: flex; align-items: center; justify-content: space-between; }
+
 .agent-status-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; font-size: 9px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.5px; border-radius: 0;
+  display: inline-flex; align-items: center; gap: var(--s1);
+  padding: 1px 6px; font-size: var(--fs-xs); font-weight: var(--w-bold);
+  text-transform: uppercase; letter-spacing: var(--track);
+  border-radius: var(--radius);
+  border: 1px solid var(--cyan-25); color: var(--dim); background: var(--cyan-06);
 }
-.agent-card.active .agent-status-pill { background: rgba(245,197,24,0.12); color: var(--gold); }
-.agent-card.recent .agent-status-pill { background: rgba(155,109,255,0.1); color: var(--purple); }
-.agent-card.idle .agent-status-pill { background: transparent; color: var(--text-faint); border: 1px solid var(--text-faint); }
-.agent-card.stale .agent-status-pill { background: rgba(255,107,74,0.1); color: var(--orange); }
+.agent-card.active .agent-status-pill {
+  color: var(--gold-hi); border-color: var(--gold-45); background: var(--gold-10);
+  animation: sesspulse var(--pulse) ease-in-out infinite;
+}
+.agent-card.recent .agent-status-pill { color: var(--violet); border-color: var(--violet-45); background: var(--violet-12); }
+.agent-card.idle .agent-status-pill { color: var(--cyan); background: var(--cyan-06); }
+.agent-card.stale .agent-status-pill { color: var(--orange); border-color: var(--orange-45); background: var(--orange-10); }
 
 .agent-meta {
-  display: flex; gap: 8px; font-size: 9px; color: var(--text-faint);
-  letter-spacing: 0.3px;
+  display: flex; gap: var(--s2); font-size: var(--fs-xs); color: var(--dim);
+  letter-spacing: var(--track); font-variant-numeric: tabular-nums;
 }
 .agent-meta span { white-space: nowrap; }
 
-.category-empty { color: var(--text-faint); font-style: italic; font-size: 11px; padding: 4px 0; }
+.category-empty { color: var(--dim); font-style: italic; font-size: var(--fs-sm); padding: var(--s1) 0; }
 
 /* ─── Sidebar Sections ─── */
-.section { margin-bottom: 20px; }
+.section { margin-bottom: var(--s5); }
 .section-title {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1.5px; color: var(--cyan); margin-bottom: 8px;
-  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  font-size: var(--fs-sm); font-weight: var(--w-bold); text-transform: uppercase;
+  letter-spacing: var(--track-wide); color: var(--cyan); margin-bottom: var(--s4);
+  padding-bottom: var(--s1); border-bottom: var(--edge);
 }
 
 .task-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 0; padding: 10px; margin-bottom: 6px;
+  background: var(--panel-fill); border: var(--edge);
+  border-radius: var(--radius); padding: var(--s3); margin-bottom: var(--s2);
+  box-shadow: var(--bloom); position: relative;
 }
-.task-card.active { border-color: var(--gold); }
-.task-card.recent { border-color: var(--purple); }
-.task-card .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-.task-card .task-agent { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-.task-card .task-status { font-size: 9px; font-weight: 700; text-transform: uppercase; }
-.task-card .task-status.active { color: var(--gold); }
-.task-card .task-status.recent { color: var(--purple); }
-.task-card .task-desc { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; word-wrap: break-word; }
-.task-card .task-meta { display: flex; gap: 8px; font-size: 10px; color: var(--text-faint); }
+.task-card.active { border-color: var(--gold-45); box-shadow: var(--bloom-gold); }
+.task-card.recent { border-color: var(--violet-45); box-shadow: var(--bloom-violet); }
+.task-card.active::before, .task-card.active::after,
+.task-card.active .c4::before, .task-card.active .c4::after { border-color: var(--gold-45); }
+.task-card.recent::before, .task-card.recent::after,
+.task-card.recent .c4::before, .task-card.recent .c4::after { border-color: var(--violet-45); }
+
+.task-card .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--s2); }
+.task-card .task-agent { font-weight: var(--w-bold); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--track); }
+.task-card .task-status { font-size: var(--fs-xs); font-weight: var(--w-bold); text-transform: uppercase; letter-spacing: var(--track); }
+.task-card .task-status.active { color: var(--gold-hi); }
+.task-card .task-status.recent { color: var(--violet); }
+.task-card .task-desc { font-size: var(--fs-xs); color: var(--dim); margin-bottom: var(--s2); word-wrap: break-word; line-height: 1.5; }
+.task-card .task-meta { display: flex; gap: var(--s2); font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums; }
 .task-card .task-meta span { white-space: nowrap; }
 
-.comm-item { padding: 4px 6px; margin-bottom: 2px; font-size: 10px; }
-.comm-item .comm-from { color: var(--amber); font-weight: 600; }
-.comm-item .comm-to { color: var(--cyan); font-weight: 600; }
-.comm-item .comm-time { color: var(--text-faint); }
+/* Live activity indicator (Increment 4) */
+.work-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: var(--w-bold);
+  color: var(--gold-hi);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  animation: workpulse 1.5s ease-in-out infinite;
+  margin-top: var(--s1);
+}
+.work-indicator::before { content: '\25B6'; font-size: 8px; }
+.work-activity {
+  font-size: var(--fs-xs);
+  color: var(--dim);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font);
+}
 
-.session-item { padding: 4px 6px; margin-bottom: 2px; font-size: 10px; display: flex; justify-content: space-between; }
-.session-item:hover { background: var(--bg-card); }
-.session-item .sess-key { color: var(--text-dim); word-break: break-all; }
-.session-item .sess-meta { display: flex; gap: 6px; color: var(--text-faint); white-space: nowrap; }
+.comm-item { padding: var(--s1) var(--s2); margin-bottom: 2px; font-size: var(--fs-xs); }
+.comm-item .comm-from { color: var(--gold-hi); font-weight: var(--w-bold); }
+.comm-item .comm-to { color: var(--cyan-hi); font-weight: var(--w-bold); }
+.comm-item .comm-time { color: var(--dim); font-variant-numeric: tabular-nums; }
 
-.collapsible-toggle { cursor: pointer; user-select: none; }
-.collapsible-toggle::after { content: ' \u25BE'; color: var(--text-faint); }
-.collapsible-toggle.collapsed::after { content: ' \u25B8'; color: var(--text-faint); }
+.session-item { padding: var(--s1) var(--s2); margin-bottom: 2px; font-size: var(--fs-xs); display: flex; justify-content: space-between; }
+.session-item:hover { background: var(--cyan-06); }
+.session-item .sess-key { color: var(--dim); word-break: break-all; }
+.session-item .sess-meta { display: flex; gap: var(--s1); color: var(--dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.collapsible-toggle { cursor: pointer; user-select: none; font-size: var(--fs-xs); font-weight: var(--w-bold); letter-spacing: var(--track); color: var(--cyan); }
+.collapsible-toggle::after { content: ' \u25BE'; color: var(--dim); }
+.collapsible-toggle.collapsed::after { content: ' \u25B8'; color: var(--dim); }
 .collapsible.collapsed { display: none; }
 
-.empty { color: var(--text-faint); font-style: italic; padding: 4px; font-size: 10px; }
+.empty { color: var(--dim); font-style: italic; padding: var(--s1); font-size: var(--fs-xs); }
 
 .offline-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,10,25,0.95); display: flex; align-items: center; justify-content: center; z-index: 100;
+  background: rgba(3, 8, 13, 0.95); display: flex; align-items: center; justify-content: center; z-index: 100;
 }
 .offline-overlay .offline-box { text-align: center; }
-.offline-overlay h2 { color: var(--red); margin-bottom: 8px; font-size: 14px; }
-.offline-overlay p { color: var(--text-dim); }
-.offline-overlay code { background: var(--bg-card); padding: 4px 8px; color: var(--cyan); }
+.offline-overlay h2 { color: var(--red); margin-bottom: var(--s2); font-size: var(--fs-lg); letter-spacing: var(--track-wide); }
+.offline-overlay p { color: var(--dim); font-size: var(--fs-sm); }
+.offline-overlay code {
+  background: var(--cyan-06); padding: var(--s1) var(--s2); color: var(--cyan-hi);
+  border: 1px solid var(--cyan-25); border-radius: var(--radius);
+}
 
 .main::-webkit-scrollbar, .sidebar::-webkit-scrollbar { width: 4px; }
-.main::-webkit-scrollbar-thumb, .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+.main::-webkit-scrollbar-thumb, .sidebar::-webkit-scrollbar-thumb { background: var(--cyan-25); }
 .main::-webkit-scrollbar-track, .sidebar::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes sesspulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+@keyframes workpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+
+/* ─── Comms Page (task-centric) ─── */
+.comms-page {
+  padding: var(--s5);
+  max-width: none;
+  overflow-y: auto;
+  height: 100%;
+}
+.comms-back {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  cursor: pointer; color: var(--cyan); font-size: var(--fs-sm);
+  font-weight: var(--w-bold); text-transform: uppercase; letter-spacing: var(--track);
+  margin-bottom: var(--s4); padding: var(--s1) var(--s2);
+  border: 1px solid var(--cyan-25); border-radius: var(--radius); background: var(--cyan-06);
+  transition: border-color var(--tr-fast);
+}
+.comms-back:hover { border-color: var(--cyan-45); }
+
+.task-list { display: flex; flex-direction: column; gap: var(--s3); }
+
+.task-card-clickable {
+  background: var(--panel-fill); border: var(--edge);
+  border-radius: var(--radius); padding: var(--s4);
+  box-shadow: var(--bloom); position: relative; cursor: pointer;
+  transition: border-color var(--tr-fast), box-shadow var(--tr-fast);
+}
+.task-card-clickable:hover { border-color: var(--cyan-45); box-shadow: 0 0 24px rgba(0,229,255,0.15); }
+.task-card-clickable .c4 { position: absolute; inset: 0; pointer-events: none; }
+
+.task-card-header {
+  display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--s3);
+}
+.task-card-label {
+  font-size: var(--fs-sm); font-weight: var(--w-bold); text-transform: uppercase;
+  letter-spacing: var(--track); color: var(--cyan-hi);
+}
+.task-card-progress-text {
+  font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums;
+}
+.task-card-goal {
+  font-size: var(--fs-sm); color: var(--text); line-height: 1.5;
+  padding: var(--s2); background: var(--bg-page); border-radius: var(--radius);
+  border: 1px solid var(--cyan-06); margin-bottom: var(--s3);
+}
+.task-card-agents {
+  display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s3);
+}
+.task-card-agent {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  padding: 2px 8px; border-radius: var(--radius);
+  font-size: var(--fs-xs); font-weight: var(--w-bold);
+  text-transform: uppercase; letter-spacing: var(--track);
+  border: 1px solid var(--cyan-25); background: var(--cyan-06); color: var(--cyan-hi);
+}
+.task-card-agent .agent-iter { color: var(--dim); font-weight: var(--w-reg); }
+.task-card-bar {
+  height: 4px; background: var(--bg-page); border-radius: 2px; overflow: hidden;
+  border: 1px solid var(--cyan-06);
+}
+.task-card-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green));
+  transition: width var(--tr-med);
+}
+.task-card-meta {
+  display: flex; gap: var(--s3); font-size: var(--fs-xs); color: var(--dim);
+  font-variant-numeric: tabular-nums; margin-top: var(--s2);
+}
+
+/* Comms timeline (task detail view) */
+.comms-timeline { display: flex; flex-direction: column; gap: var(--s2); max-width: 1400px; margin: 0 auto; overflow-x: auto; }
+
+/* Threading (Increment 3) */
+.comms-thread-node {
+  position: relative;
+  padding-left: var(--s2);
+}
+.comms-thread-children {
+  position: relative;
+  border-left: 1px solid var(--cyan-16);
+  margin-left: 6px;
+  padding-left: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.comms-entry {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+.comms-entry .comm-instruction {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+.comms-entry {
+  background: var(--panel-fill); border: var(--edge);
+  border-radius: var(--radius); padding: var(--s3);
+  box-shadow: var(--bloom); position: relative;
+  width: 100%;
+}
+.comms-entry .c4 { position: absolute; inset: 0; pointer-events: none; }
+.comms-entry-header {
+  display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2);
+  font-size: var(--fs-xs);
+}
+.comms-entry .comm-kind {
+  display: inline-flex; align-items: center; padding: 1px 6px;
+  border-radius: var(--radius); font-weight: var(--w-bold);
+  text-transform: uppercase; letter-spacing: var(--track); font-size: var(--fs-xs);
+}
+.comms-entry .comm-kind.spawn { color: var(--gold-hi); border: 1px solid var(--gold-45); background: var(--gold-10); }
+.comms-entry .comm-kind.send { color: var(--cyan-hi); border: 1px solid var(--cyan-25); background: var(--cyan-06); }
+.comms-entry .comm-kind.user { color: var(--green); border: 1px solid rgba(47,214,123,0.45); background: rgba(47,214,123,0.10); }
+.comms-entry .comm-kind.response { color: var(--violet); border: 1px solid var(--violet-45); background: var(--violet-12); }
+.comms-entry .comm-kind.announce { color: var(--violet); border: 1px solid var(--violet-25); background: var(--violet-06); }
+.comms-entry .comm-kind.reply { color: var(--gold-hi); border: 1px solid var(--gold-45); background: var(--gold-10); }
+.comms-entry .comm-from { color: var(--gold-hi); font-weight: var(--w-bold); }
+.comms-entry .comm-arrow { color: var(--dim); }
+.comms-entry .comm-to { color: var(--cyan-hi); font-weight: var(--w-bold); }
+.comms-entry .comm-time { color: var(--dim); font-variant-numeric: tabular-nums; margin-left: auto; }
+.comms-entry .comm-instruction {
+  font-size: var(--fs-sm); color: var(--text); line-height: 1.7;
+  white-space: pre-wrap; word-wrap: break-word;
+  max-width: 100%;
+  padding: var(--s2); background: var(--bg-page); border-radius: var(--radius);
+  border: 1px solid var(--cyan-06); margin-top: var(--s2);
+}
+.comms-entry .comm-stats {
+  font-size: var(--fs-xs); color: var(--dim); margin-top: var(--s1);
+  font-variant-numeric: tabular-nums;
+}
+.comms-entry.comm-reply {
+  border-left: 2px solid var(--gold-45);
+  padding-left: var(--s4);
+}
+.comm-reply-indicator {
+  font-size: var(--fs-xs); color: var(--dim); margin-bottom: var(--s1);
+}
+
+.view { display: none; }
+.view.active { display: flex; flex: 1; overflow: hidden; }
+#view-comms.active { flex-direction: column; }
+
+/* ─── Sessions View ─── */
+.sessions-grid {
+  display: grid; grid-template-columns: 360px 1fr; gap: var(--s4);
+  height: 100%; padding: var(--s4); overflow: hidden;
+}
+.sessions-list-panel { display: flex; flex-direction: column; overflow: hidden; }
+.sessions-list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--s3) var(--s4); border-bottom: var(--edge);
+}
+.sessions-count { font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums; }
+.sessions-list { flex: 1; overflow-y: auto; padding: var(--s2); }
+.session-row {
+  padding: var(--s2) var(--s3); margin-bottom: 2px; cursor: pointer;
+  border-radius: var(--radius); transition: background var(--tr-fast), border-color var(--tr-fast);
+  border: 1px solid transparent;
+}
+.session-row:hover { background: var(--cyan-06); border-color: var(--cyan-16); }
+.session-row.selected { background: var(--cyan-10); border-color: var(--cyan-45); }
+.session-row-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
+.session-row-label {
+  font-size: var(--fs-sm); font-weight: var(--w-bold); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+}
+.session-row-status { font-size: var(--fs-xs); font-weight: var(--w-bold); text-transform: uppercase; letter-spacing: var(--track); }
+.session-row-status.active { color: var(--gold-hi); }
+.session-row-status.recent { color: var(--violet); }
+.session-row-status.idle { color: var(--dim); }
+.session-row-status.stale { color: var(--orange); }
+.session-row-status.completed { color: var(--green); }
+.session-row-meta { display: flex; gap: var(--s2); font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums; }
+.session-row-meta span { white-space: nowrap; }
+.sessions-detail-panel { overflow: hidden; display: flex; flex-direction: column; }
+#sessions-detail { flex: 1; overflow-y: auto; padding: var(--s4); }
+.session-detail-header { margin-bottom: var(--s4); padding-bottom: var(--s3); border-bottom: var(--edge); }
+.session-detail-title { font-size: var(--fs-lg); font-weight: var(--w-bold); color: var(--cyan-hi); margin-bottom: var(--s2); word-break: break-all; }
+.session-detail-meta { display: flex; flex-wrap: wrap; gap: var(--s3); font-size: var(--fs-xs); color: var(--dim); }
+.session-detail-meta span { display: inline-flex; align-items: center; gap: var(--s1); }
+.session-detail-meta .meta-label { color: var(--dim); text-transform: uppercase; letter-spacing: var(--track); }
+.session-detail-meta .meta-value { color: var(--text); font-variant-numeric: tabular-nums; }
+.session-event {
+  padding: var(--s3); margin-bottom: var(--s2);
+  background: var(--bg-page); border: 1px solid var(--cyan-06); border-radius: var(--radius);
+}
+.session-event-header { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s1); font-size: var(--fs-xs); }
+.session-event-type {
+  display: inline-flex; padding: 1px 6px; border-radius: var(--radius);
+  font-weight: var(--w-bold); text-transform: uppercase; letter-spacing: var(--track); font-size: var(--fs-xs);
+}
+.session-event-type.spawn { color: var(--gold-hi); border: 1px solid var(--gold-45); background: var(--gold-10); }
+.session-event-type.send { color: var(--cyan-hi); border: 1px solid var(--cyan-25); background: var(--cyan-06); }
+.session-event-type.user { color: var(--green); border: 1px solid rgba(47,214,123,0.45); background: rgba(47,214,123,0.10); }
+.session-event-type.response { color: var(--violet); border: 1px solid var(--violet-45); background: var(--violet-12); }
+.session-event-type.reply { color: var(--gold-hi); border: 1px solid var(--gold-45); background: var(--gold-10); }
+.session-event-type.announce { color: var(--violet); border: 1px solid var(--violet-25); background: var(--violet-06); }
+.session-event-actor { color: var(--gold-hi); font-weight: var(--w-bold); }
+.session-event-arrow { color: var(--dim); }
+.session-event-target { color: var(--cyan-hi); font-weight: var(--w-bold); }
+.session-event-time { color: var(--dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+.session-event-summary {
+  font-size: var(--fs-sm); color: var(--text); line-height: 1.5;
+  white-space: pre-wrap; word-wrap: break-word;
+  padding: var(--s2); background: var(--bg-page); border-radius: var(--radius); margin-top: var(--s1);
+}
+#view-sessions.active { flex-direction: row; }
+
+/* ─── Orbit View ─── */
+.orbit-container {
+  width: 100%; height: 100%;
+  overflow: auto;
+  position: relative;
+  background: radial-gradient(800px 500px at 50% 40%, var(--cyan-06), transparent 65%),
+              repeating-linear-gradient(0deg, var(--cyan-03) 0 1px, transparent 1px 88px),
+              repeating-linear-gradient(90deg, var(--cyan-03) 0 1px, transparent 1px 88px);
+  cursor: grab;
+  user-select: none;
+}
+.orbit-container:active { cursor: grabbing; }
+#orbit-svg {
+  display: block;
+  min-width: 2400px;
+  min-height: 1600px;
+}
+#view-orbit.active { flex-direction: column; }
+
+/* Orbit guide circles (background) */
+.orbit-guide { fill: none; stroke: var(--cyan-45); stroke-width: 1; stroke-dasharray: 3 6; opacity: 0.5; }
+.orbit-guide-label { fill: var(--dim); font-family: var(--font); font-size: 10px; letter-spacing: 0.24em; opacity: 0.6; }
+
+/* Core: arc-reactor */
+.ocore { cursor: pointer; }
+.ocore-bound { stroke: var(--cyan-45); stroke-width: 1.5; fill: var(--cyan-06); }
+.ocore-ring { fill: none; }
+.ocore-ring.r1 { stroke: var(--cyan-16); stroke-width: 1; }
+.ocore-ring.r2 { stroke: var(--cyan-25); stroke-width: 1; stroke-dasharray: 4 6; }
+.ocore-ring.r3 { stroke: var(--cyan-45); stroke-width: 1.5; }
+.ocore-heart {
+  fill: var(--cyan-10); stroke: var(--cyan-hi); stroke-width: 1.5;
+  animation: corepulse 1.5s ease-in-out infinite;
+}
+.ocore-tri { fill: var(--cyan-hi); }
+.ocore-label {
+  fill: var(--text); font-family: var(--font); font-size: 13px;
+  letter-spacing: 0.2em; font-weight: var(--w-bold);
+}
+.ocore-sublabel { fill: var(--dim); font-family: var(--font); font-size: 9px; letter-spacing: 0.2em; }
+.ocore.working .ocore-bound { stroke: var(--gold-45); fill: var(--gold-10); }
+.ocore.working .ocore-heart { fill: var(--gold-10); stroke: var(--gold-hi); animation: corePulseActive 3s ease-in-out infinite; }
+@keyframes corePulseActive {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px var(--gold-25)); }
+  50% { opacity: 0.85; filter: drop-shadow(0 0 12px var(--gold-hi)); }
+}
+.ocore.working .ocore-tri { fill: var(--gold-hi); }
+.ocore.working .ocore-ring.r2 { stroke: var(--gold-45); }
+.ocore.working .ocore-ring.r1 { stroke: var(--gold-45); animation: ringPulse 4s ease-in-out infinite; }
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.ocore.working .ocore-label { fill: var(--gold-hi); }
+.ocore.working .odot { fill: var(--gold-hi); }
+
+/* Orbit rotator — dots are anchor points, not orbiting (issue #2) */
+.orbit-rot {
+  transform-box: fill-box; transform-origin: center;
+  /* No spin animation — dots are fixed anchor points for lines */
+}
+.odot { fill: var(--cyan-hi); }
+.odot.anchor { fill: var(--gold-hi); filter: drop-shadow(0 0 4px var(--gold-45)); }
+
+/* Arrow heads on connection lines (issue #7) */
+.olink { stroke: var(--cyan-25); stroke-width: 1; transition: stroke var(--tr-med); fill: none; }
+.olink.hot {
+  stroke: var(--gold-hi); stroke-width: 1.8;
+  stroke-dasharray: 8 6;
+  animation: dashflow 1.1s linear infinite;
+  filter: drop-shadow(0 0 3px var(--gold-45));
+}
+
+/* Hex agent nodes — state colors match fleet view exactly */
+.onode { cursor: pointer; }
+.ohex {
+  fill: var(--cyan-06); stroke: var(--cyan-45); stroke-width: 1.5;
+  transition: stroke var(--tr-med), fill var(--tr-med);
+}
+.onode:hover .ohex { stroke: var(--cyan-hi); filter: drop-shadow(0 0 5px var(--cyan-45)); }
+.onode.unseen .ohex { fill: var(--cyan-03); stroke: var(--cyan-25); }
+/* Fleet color mapping (must match agent-card states exactly):
+   active  → gold (border, glow, pulse)
+   recent  → violet (border, soft glow)
+   idle    → cyan-25 (dim, no glow)
+   stale   → orange (border, glow, slight opacity) */
+/* Active nodes pulse — subtle scale + glow */
+.onode.active .ohex {
+  fill: var(--gold-10); stroke: var(--gold-hi);
+  animation: orbitPulse 0.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--gold-45));
+}
+@keyframes orbitPulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px var(--gold-45)); }
+  50% { opacity: 0.3; filter: drop-shadow(0 0 20px var(--gold-hi)); }
+}
+.onode.recent .ohex {
+  fill: var(--violet-12); stroke: var(--violet-45);
+  filter: drop-shadow(0 0 4px var(--violet-25));
+}
+.onode.idle .ohex {
+  fill: var(--cyan-06); stroke: var(--cyan-25); opacity: 0.6;
+}
+.onode.stale .ohex {
+  fill: var(--orange-10); stroke: var(--orange-45); opacity: 0.55;
+  filter: drop-shadow(0 0 4px var(--orange-45));
+}
+/* Stale icons match hex opacity */
+.onode.stale .glyph { opacity: 0.55; }
+
+/* Node labels — active/recent use status colors, idle/stale use category color via inline style */
+.olabel-name { fill: var(--text); font-family: var(--font); font-size: 11px; font-weight: var(--w-bold); letter-spacing: 0.12em; }
+.olabel-class { fill: var(--dim); font-family: var(--font); font-size: 9px; letter-spacing: 0.2em; }
+.olabel-meta { fill: var(--dim); font-family: var(--font); font-size: 9px; letter-spacing: 0.06em; }
+.onode.active .olabel-name { fill: var(--gold-hi); }
+.onode.recent .olabel-name { fill: var(--violet); }
+
+/* Section captions */
+.osec-cap { fill: var(--dim); font-family: var(--font); font-size: 11px; font-weight: var(--w-bold); letter-spacing: 0.2em; }
+
+/* Category zone tints */
+.ozone-ring { fill: none; stroke: var(--cyan-03); stroke-width: 1; stroke-dasharray: 2 6; }
+
+/* Drift animation wrapper */
+.ofloat { animation: gdrift 16s ease-in-out infinite; }
+
+/* Zoom/pan controls */
+.orbit-controls {
+  position: absolute; bottom: var(--s4); right: var(--s4);
+  display: flex; flex-direction: column; gap: var(--s1); z-index: 10;
+}
+.orbit-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-panel); border: var(--edge); border-radius: var(--radius);
+  color: var(--cyan); cursor: pointer; font-size: 18px;
+  transition: background var(--tr-fast), color var(--tr-fast);
+  font-family: var(--font);
+}
+.orbit-btn:hover { background: var(--cyan-10); color: var(--cyan-hi); }
+
+/* Corner telemetry */
+.orbit-corner-tl, .orbit-corner-br {
+  position: absolute; pointer-events: none;
+  display: flex; flex-direction: column; gap: var(--s1);
+  padding: var(--s3); max-width: 46%;
+}
+.orbit-corner-tl { top: var(--s2); left: var(--s2); }
+.orbit-corner-br { bottom: var(--s2); right: var(--s2); text-align: right; align-items: flex-end; }
+.orbit-corner-label {
+  font-size: var(--fs-xs); font-weight: var(--w-bold); letter-spacing: var(--track-wide);
+  color: var(--dim); white-space: nowrap;
+}
+.orbit-corner-val {
+  font-size: var(--fs-sm); color: var(--cyan-hi); letter-spacing: var(--track);
+  text-shadow: 0 0 8px var(--cyan-25);
+}
+.orbit-corner-val.lit { color: var(--gold-hi); text-shadow: 0 0 8px var(--gold-45); }
+
+/* Keyframes for orbit animations */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes dashflow { to { stroke-dashoffset: -28; } }
+@keyframes nodepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes corepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes gdrift {
+  0%, 100% { transform: translate(0, calc(var(--drift, 0px) * -1)); }
+  25% { transform: translate(var(--drift, 0px), 0); }
+  50% { transform: translate(0, var(--drift, 0px)); }
+  75% { transform: translate(calc(var(--drift, 0px) * -1), 0); }
+}
 
 @media (max-width: 900px) {
   .body { flex-direction: column; }
-  .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
-  .agent-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .sidebar { width: 100%; border-left: none; border-top: var(--edge); max-height: 40vh; }
+  .agent-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .sessions-grid { grid-template-columns: 1fr; grid-template-rows: 40% 60%; }
 }
 </style>
 </head>
@@ -251,13 +837,16 @@ body {
   <!-- Sidebar Nav -->
   <div class="sidebar-nav">
     <div class="nav-logo">D</div>
-    <div class="nav-item active" data-view="fleet" title="Fleet">
+    <div class="nav-item active" data-view="orbit" title="Orbit">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>
     </div>
-    <div class="nav-item" title="Comms">
+    <div class="nav-item" data-view="fleet" title="Fleet">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </div>
+    <div class="nav-item" data-view="comms" title="Comms">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </div>
-    <div class="nav-item" title="Sessions">
+    <div class="nav-item" data-view="sessions" title="Sessions">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
     </div>
   </div>
@@ -266,7 +855,7 @@ body {
     <!-- Header -->
     <div class="header">
       <div class="header-left">
-        <h1>Dispatch HUD</h1>
+        <h1>Dispatch<span>HUD</span></h1>
         <span class="h1-sep">::</span>
         <span class="header-counts">
           <span><span class="num" id="session-count">0</span> sessions</span>
@@ -278,26 +867,79 @@ body {
         <div class="daily-tokens">
           <span class="value" id="daily-tokens">0</span>
           <span>tok</span>
-          <span style="color:var(--text-faint)">perth</span>
+          <span style="color:var(--dim)">perth</span>
         </div>
-        <span id="version" style="color:var(--text-faint);font-size:10px"></span>
+        <span id="updated-ago" style="color:var(--dim);font-size:var(--fs-xs);font-variant-numeric:tabular-nums"></span>
+        <span id="version" style="color:var(--dim);font-size:var(--fs-xs)"></span>
         <span id="conn" class="status-dot reconnecting" title="connecting"></span>
       </div>
     </div>
 
     <!-- Body -->
     <div class="body">
-      <div class="main" id="main-panel">
-        <div class="fleet-container" id="fleet-container"></div>
-      </div>
-      <div class="sidebar" id="sidebar">
-        <div class="section">
-          <div class="section-title">Active Work</div>
-          <div id="active-work"><div class="empty">No active work</div></div>
+      <!-- Fleet View -->
+      <div class="view active" id="view-orbit">
+        <div class="orbit-container" id="orbit-container">
+          <svg id="orbit-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1600" preserveAspectRatio="xMidYMid meet">
+            <defs id="orbit-defs"></defs>
+            <g id="orbit-content"></g>
+          </svg>
+          <div class="orbit-controls">
+            <button class="orbit-btn" id="orbit-zoom-in" title="Zoom in">+</button>
+            <button class="orbit-btn" id="orbit-zoom-out" title="Zoom out">-</button>
+            <button class="orbit-btn" id="orbit-reset" title="Reset view">R</button>
+          </div>
+          <div class="orbit-corner-tl" id="orbit-corner-tl"></div>
+          <div class="orbit-corner-br" id="orbit-corner-br"></div>
         </div>
-        <div class="section">
-          <div class="section-title">Comms Feed</div>
-          <div id="comms"><div class="empty">No comms</div></div>
+      </div>
+      <!-- Fleet View (moved to second nav, no longer default) -->
+      <div class="view" id="view-fleet">
+        <div class="main" id="main-panel">
+          <div class="fleet-container" id="fleet-container"></div>
+        </div>
+        <div class="sidebar" id="sidebar">
+          <div class="section">
+            <div class="section-title">Active Work</div>
+            <div id="active-work"><div class="empty">No active work</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Comms View -->
+      <div class="view" id="view-comms">
+        <div class="comms-page" id="comms-page">
+          <!-- Task list (default view) -->
+          <div id="comms-task-list">
+            <div class="section">
+              <div class="section-title">Tasks</div>
+              <div class="task-list" id="task-list"><div class="empty">No active tasks. Spawn a sub-agent to see it here.</div></div>
+            </div>
+          </div>
+          <!-- Task detail (comms timeline) -->
+          <div id="comms-task-detail" style="display:none">
+            <div class="comms-back" id="comms-back">\u2190 Back to Tasks</div>
+            <div class="section">
+              <div class="section-title" id="comms-detail-title">Comms</div>
+              <div class="comms-timeline" id="comms-timeline"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Sessions View -->
+      <div class="view" id="view-sessions">
+        <div class="sessions-grid">
+          <div class="panel sessions-list-panel" id="sessions-list-panel">
+            <div class="c4"></div>
+            <div class="sessions-list-header">
+              <span class="section-title" style="margin:0">Sessions</span>
+              <span class="sessions-count" id="sessions-count">0</span>
+            </div>
+            <div class="sessions-list" id="sessions-list"><div class="empty">No sessions found</div></div>
+          </div>
+          <div class="panel sessions-detail-panel" id="sessions-detail-panel">
+            <div class="c4"></div>
+            <div id="sessions-detail"><div class="empty">Select a session to view details</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -334,6 +976,18 @@ body {
 <script>
 var es = null;
 var reconnectTimer = null;
+var lastSSETime = null;
+var agoTimer = null;
+
+function startAgoTimer() {
+  if (agoTimer) return;
+  agoTimer = setInterval(function() {
+    var el = document.getElementById('updated-ago');
+    if (!el || !lastSSETime) return;
+    var s = Math.floor((Date.now() - lastSSETime) / 1000);
+    el.textContent = 'updated ' + s + 's ago';
+  }, 1000);
+}
 
 var AGENT_ICONS = {
   'main': 'icon-headset', 'dev-lead': 'icon-code', 'devops': 'icon-gear',
@@ -349,16 +1003,69 @@ var CATEGORY_LABELS = {
   critics: 'Critics', researchers: 'Researchers',
 };
 
+var renderScheduled = false;
+var pendingData = null;
+var currentView = 'fleet';
+
+function scheduleRender(data) {
+  pendingData = data;
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(function() {
+    renderScheduled = false;
+    render(pendingData);
+    pendingData = null;
+  });
+}
+
+var currentTaskFilter = null; // parentSessionId when viewing a task's comms
+
+// ─── View switching + comms navigation ───
+document.addEventListener('DOMContentLoaded', function() {
+  var navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(function(item) {
+    item.addEventListener('click', function() {
+      var view = item.getAttribute('data-view');
+      if (!view) return;
+      navItems.forEach(function(n) { n.classList.remove('active'); });
+      item.classList.add('active');
+      document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+      var viewEl = document.getElementById('view-' + view);
+      if (viewEl) viewEl.classList.add('active');
+      currentView = view;
+    });
+  });
+  // Back button for comms task detail
+  var backBtn = document.getElementById('comms-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      currentTaskFilter = null;
+      document.getElementById('comms-task-list').style.display = '';
+      document.getElementById('comms-task-detail').style.display = 'none';
+    });
+  }
+});
+
 function connect() {
   var conn = document.getElementById('conn');
   conn.className = 'status-dot reconnecting';
   es = new EventSource('/stream');
 
+  es.addEventListener('open', function() {
+    conn.className = 'status-dot online';
+  });
+
   es.addEventListener('state', function(e) {
     var data = JSON.parse(e.data);
-    render(data);
+    lastSSETime = Date.now();
+    startAgoTimer();
+    var agoEl = document.getElementById('updated-ago');
+    if (agoEl) agoEl.textContent = 'updated 0s ago';
+    scheduleRender(data);
     document.getElementById('offline').style.display = 'none';
     conn.className = 'status-dot online';
+    // Fetch sessions list on initial state
+    if (sessionsData.length === 0) fetchSessionsList();
   });
 
   es.addEventListener('gateway-offline', function(e) {
@@ -366,18 +1073,32 @@ function connect() {
     conn.className = 'status-dot offline';
   });
 
+  es.addEventListener('comms-update', function(e) {
+    var data = JSON.parse(e.data);
+    handleCommsUpdate(data.comms || [], data.activities || {});
+  });
+
   es.addEventListener('version', function(e) {
     var d = JSON.parse(e.data);
     document.getElementById('version').textContent = d.version ? 'v' + d.version : '';
   });
 
-  es.onerror = function() {
-    conn.className = 'status-dot reconnecting';
-    es.close();
-    if (!reconnectTimer) {
-      reconnectTimer = setTimeout(function() { reconnectTimer = null; connect(); }, 5000);
+  es.addEventListener('error', function() {
+    // Don't close — let EventSource auto-reconnect.
+    // Just update the dot based on readyState.
+    if (es && es.readyState === 0) {
+      // CONNECTING — browser is auto-reconnecting, show orange briefly
+      conn.className = 'status-dot reconnecting';
+    } else if (es && es.readyState === 2) {
+      // CLOSED — server gone, need manual reconnect
+      es.close();
+      es = null;
+      conn.className = 'status-dot offline';
+      if (!reconnectTimer) {
+        reconnectTimer = setTimeout(function() { reconnectTimer = null; connect(); }, 2000);
+      }
     }
-  };
+  });
 }
 
 function fmtTokens(n) {
@@ -401,21 +1122,32 @@ function ago(ms) {
 
 function render(data) {
   var c = data.counts || {};
+  lastData = data;
   document.getElementById('session-count').textContent = c.totalSessions || 0;
   document.getElementById('agent-count').textContent = c.agents || 0;
   document.getElementById('work-count').textContent = c.activeWork || 0;
   document.getElementById('daily-tokens').textContent = fmtTokens(data.dailyTokens || 0);
 
+  // Render orbit view if active
+  var activeNav = document.querySelector('.nav-item.active');
+  if (activeNav && activeNav.getAttribute('data-view') === 'orbit') {
+    renderOrbit(data);
+  }
   renderFleet(data.agents || []);
+  renderTaskBoard(data.taskBoard || []);
+  renderActiveWork(data.activeWork || []);
+  renderComms(data.comms || []);
+}
 
+function renderActiveWork(work) {
   var workEl = document.getElementById('active-work');
-  var work = data.activeWork || [];
   workEl.innerHTML = work.length === 0
     ? '<div class="empty">No active work</div>'
     : work.map(function(w) {
         var cls = w.status === 'active' ? 'active' : 'recent';
         var icon = w.isSubagent ? '\u{1F916}' : (w.kind === 'cron' ? '\u23F0' : '\u{1F4E1}');
-        return '<div class="task-card ' + cls + '">' +
+        return '<div class="task-card ' + cls + '" data-session-key="' + escapeHtml(w.key || '') + '" data-session-id="' + escapeHtml(w.sessionId || '') + '" style="cursor:pointer">' +
+          '<div class="c4"></div>' +
           '<div class="task-header">' +
             '<span class="task-agent">' + icon + ' ' + escapeHtml(w.agentId || 'main') + '</span>' +
             '<span class="task-status ' + cls + '">' + w.status + '</span>' +
@@ -424,23 +1156,282 @@ function render(data) {
           '<div class="task-meta">' +
             '<span>' + fmtTokens(w.tokens) + ' tok</span>' +
             '<span>' + (w.model || '') + '</span>' +
-            '<span>' + (w.elapsed || '') + '</span>' +
             '<span>' + ago(w.updatedAt) + '</span>' +
           '</div>' +
+          (w.status === 'active' ? '<div class="work-indicator">working</div>' : '') +
+          (w.lastActivity ? '<div class="work-activity">' + escapeHtml(w.lastActivity.tool + ': ' + w.lastActivity.desc) + '</div>' : '') +
         '</div>';
       }).join('');
+  // Wire up click handlers — navigate to comms page with task selected
+  workEl.querySelectorAll('.task-card[data-session-key]').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var sessionKey = card.getAttribute('data-session-key');
+      // Find matching task in taskBoard by parentKey
+      var task = null;
+      if (lastData && lastData.taskBoard) {
+        task = lastData.taskBoard.find(function(t) { return t.parentKey === sessionKey; });
+      }
+      if (task) {
+        currentTaskFilter = task.sessionId;
+        renderCommsDetail(lastData.comms || [], task.sessionId);
+      } else {
+        // No matching task — just go to comms list
+        currentTaskFilter = null;
+      }
+      // Switch to comms view
+      var navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(function(n) { n.classList.remove('active'); });
+      var commsNav = document.querySelector('.nav-item[data-view="comms"]');
+      if (commsNav) commsNav.classList.add('active');
+      document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+      var commsView = document.getElementById('view-comms');
+      if (commsView) commsView.classList.add('active');
+      currentView = 'comms';
+      // Show detail or list
+      if (currentTaskFilter) {
+        document.getElementById('comms-task-list').style.display = 'none';
+        document.getElementById('comms-task-detail').style.display = '';
+      } else {
+        document.getElementById('comms-task-list').style.display = '';
+        document.getElementById('comms-task-detail').style.display = 'none';
+      }
+    });
+  });
+}
 
-  var commsEl = document.getElementById('comms');
-  var comms = data.comms || [];
-  commsEl.innerHTML = comms.length === 0
-    ? '<div class="empty">No comms</div>'
-    : comms.map(function(c) {
-        return '<div class="comm-item">' +
-          '<span class="comm-from">' + escapeHtml(c.from) + '</span> \u2192 ' +
-          '<span class="comm-to">' + escapeHtml(c.to) + '</span> ' +
-          '<span class="comm-time">' + (c.ago || '') + '</span>' +
-        '</div>';
-      }).join('');
+function renderTaskBoard(tasks) {
+  var el = document.getElementById('task-list');
+  if (!el) return;
+  if (tasks.length === 0) {
+    el.innerHTML = '<div class="empty">No tasks found</div>';
+    return;
+  }
+  el.innerHTML = tasks.map(function(t) {
+    var agentBadges = (t.agentList || []).map(function(a) {
+      return '<span class="task-card-agent">' + escapeHtml(a.id) +
+        ' <span class="agent-iter">x' + a.count + '</span></span>';
+    }).join('');
+    var progressColor = t.progress === 100 ? 'var(--green)' : 'var(--cyan)';
+    return '<div class="task-card-clickable" data-task-id="' + escapeHtml(t.sessionId) + '">' +
+      '<div class="c4"></div>' +
+      '<div class="task-card-header">' +
+        '<span class="task-card-label">' + escapeHtml(t.label || 'Unknown') + '</span>' +
+        '<span class="task-card-progress-text">' + t.completedSpawns + '/' + t.totalSpawns + ' done</span>' +
+      '</div>' +
+      '<div class="task-card-goal">' + escapeHtml(t.goal || '(no goal extracted)') + '</div>' +
+      '<div class="task-card-agents">' + agentBadges + '</div>' +
+      '<div class="task-card-bar"><div class="task-card-bar-fill" style="width:' + t.progress + '%;background:linear-gradient(90deg,var(--cyan),' + progressColor + ')"></div></div>' +
+      '<div class="task-card-meta">' +
+        '<span>' + t.uniqueAgents + ' agents</span>' +
+        '<span>' + t.maxIterations + ' max iterations</span>' +
+        '<span>last: ' + (t.lastActivityAgo || '') + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  // Wire up click handlers
+  el.querySelectorAll('.task-card-clickable').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var taskId = card.getAttribute('data-task-id');
+      currentTaskFilter = taskId;
+      renderCommsDetail(lastData.comms || [], taskId);
+      document.getElementById('comms-task-list').style.display = 'none';
+      document.getElementById('comms-task-detail').style.display = '';
+    });
+  });
+}
+
+var lastData = null;
+
+function renderComms(comms) {
+  // Comms are rendered in the task list / detail view
+  // The task list is rendered by renderTaskBoard
+  // If we're viewing a task detail, re-render it
+  if (currentTaskFilter) {
+    renderCommsDetail(comms, currentTaskFilter);
+  }
+}
+
+// ─── Comms tree builder (Increment 2) ───
+function buildCommsTree(comms) {
+  // Create a map of id → entry (add children: [] to each)
+  var map = {};
+  var roots = [];
+  
+  // Clone entries with children arrays (don't mutate original)
+  var nodes = comms.map(function(c) {
+    return Object.assign({}, c, { children: [] });
+  });
+  
+  for (var i = 0; i < nodes.length; i++) {
+    var n = nodes[i];
+    map[n.id] = n;
+  }
+  
+  // Iterate all entries: if parentId is non-null and exists in map, push into parent's children
+  for (var i = 0; i < nodes.length; i++) {
+    var n = nodes[i];
+    if (n.parentId && map[n.parentId]) {
+      map[n.parentId].children.push(n);
+    } else {
+      roots.push(n);
+    }
+  }
+  
+  // Sort root entries by time DESCENDING (newest thread first)
+  roots.sort(function(a, b) { return (b.time || 0) - (a.time || 0); });
+  
+  // Within each subtree, sort children by time ASCENDING (natural reading order)
+  function sortChildren(node) {
+    node.children.sort(function(a, b) { return (a.time || 0) - (b.time || 0); });
+    for (var i = 0; i < node.children.length; i++) {
+      sortChildren(node.children[i]);
+    }
+  }
+  for (var i = 0; i < roots.length; i++) {
+    sortChildren(roots[i]);
+  }
+  
+  return roots;
+}
+
+function buildCommsEntryHtml(c) {
+  var kindClass = c.kind || 'spawn';
+  var kindIcon = '';
+  if (c.kind === 'spawn') kindIcon = '\u27A4';
+  else if (c.kind === 'send') kindIcon = '\u2709';
+  else if (c.kind === 'user') kindIcon = '\u{1F4E1}';
+  else if (c.kind === 'response') kindIcon = '\u2705';
+  else if (c.kind === 'announce') kindIcon = '\u{1F4AC}';
+  else if (c.kind === 'reply') kindIcon = '\u{1F4AC}';
+  else kindIcon = '\u2022';
+  
+  var isReply = (c.kind === 'reply' || c.kind === 'response');
+  var entryClass = isReply ? 'comms-entry comm-reply' : 'comms-entry';
+  var replyBadge = isReply ? '<span class="comm-reply-indicator">\u21B3 Reply</span>' : '';
+  
+  return '<div class="' + entryClass + '">' +
+    '<div class="c4"></div>' +
+    '<div class="comms-entry-header">' +
+      '<span class="comm-kind ' + kindClass + '">' + kindIcon + ' ' + escapeHtml(c.kind) + '</span>' +
+      '<span class="comm-from">' + escapeHtml(c.from) + '</span>' +
+      '<span class="comm-arrow">\u2192</span>' +
+      '<span class="comm-to">' + escapeHtml(c.to) + '</span>' +
+      '<span class="comm-time">' + (c.ago || '') + '</span>' +
+    '</div>' +
+    '<div class="comm-instruction">' + replyBadge + escapeHtml(c.instruction || '(no text)') + '</div>' +
+    (c.stats ? '<div class="comm-stats">' + escapeHtml(c.stats) + '</div>' : '') +
+  '</div>';
+}
+
+function handleCommsUpdate(newComms, activities) {
+  if (!lastData) return;
+  
+  // Merge new comms into lastData.comms (dedupe by time+kind+instruction)
+  var existingKeys = new Set((lastData.comms || []).map(function(c) {
+    return c.time + ':' + c.kind + ':' + (c.instruction || '').slice(0, 50);
+  }));
+  
+  var fresh = newComms.filter(function(c) {
+    var key = c.time + ':' + c.kind + ':' + (c.instruction || '').slice(0, 50);
+    return !existingKeys.has(key);
+  });
+  
+  if (fresh.length > 0) {
+    lastData.comms = fresh.concat(lastData.comms || []).slice(0, 500);
+  }
+  
+  // If viewing a task detail, re-render the full tree with new entries
+  if (currentTaskFilter && fresh.length > 0) {
+    var taskComms = fresh.filter(function(c) {
+      return c.parentSessionId === currentTaskFilter;
+    });
+    if (taskComms.length > 0) {
+      // Re-render the full tree from lastData.comms
+      renderCommsDetail(lastData.comms || [], currentTaskFilter);
+    }
+  }
+  
+  // Update active work cards with live activity
+  if (activities && Object.keys(activities).length > 0) {
+    Object.keys(activities).forEach(function(sessionId) {
+      var act = activities[sessionId];
+      var card = document.querySelector('.task-card[data-session-id="' + sessionId + '"]');
+      if (card) {
+        var text = act.tool + ': ' + act.desc;
+        var activityEl = card.querySelector('.work-activity');
+        if (activityEl) {
+          activityEl.textContent = text;
+        } else {
+          var meta = card.querySelector('.task-meta');
+          if (meta) {
+            var div = document.createElement('div');
+            div.className = 'work-activity';
+            div.textContent = text;
+            meta.after(div);
+          }
+        }
+        // Ensure working indicator is present for active cards
+        var indicator = card.querySelector('.work-indicator');
+        if (!indicator && card.classList.contains('active')) {
+          var meta2 = card.querySelector('.task-meta');
+          if (meta2) {
+            var ind = document.createElement('div');
+            ind.className = 'work-indicator';
+            ind.textContent = 'working';
+            meta2.after(ind);
+          }
+        }
+      }
+    });
+  }
+}
+
+// Depth-based left border colors
+var DEPTH_COLORS = ['var(--gold-45)', 'var(--cyan-45)', 'var(--violet-45)', 'var(--green)'];
+var DEPTH_BORDERS = ['2px solid var(--gold-45)', '2px solid var(--cyan-45)', '2px solid var(--violet-45)', '2px solid rgba(47,214,123,0.45)'];
+
+function renderCommsThread(nodes, depth) {
+  var html = '';
+  for (var i = 0; i < nodes.length; i++) {
+    var n = nodes[i];
+    var borderStyle = DEPTH_BORDERS[Math.min(depth, DEPTH_BORDERS.length - 1)];
+    html += '<div class="comms-thread-node" style="margin-left: ' + (depth * 28) + 'px; border-left: ' + borderStyle + ';">';
+    html += buildCommsEntryHtml(n);
+    if (n.children && n.children.length > 0) {
+      html += '<div class="comms-thread-children">';
+      html += renderCommsThread(n.children, depth + 1);
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  return html;
+}
+
+function renderCommsDetail(comms, taskId) {
+  var el = document.getElementById('comms-timeline');
+  var titleEl = document.getElementById('comms-detail-title');
+  if (!el) return;
+  
+  // Filter comms for this task
+  var filtered = comms.filter(function(c) {
+    return c.parentSessionId === taskId;
+  });
+  
+  // Find task label
+  var task = (lastData && lastData.taskBoard) ? lastData.taskBoard.find(function(t) { return t.sessionId === taskId; }) : null;
+  var label = task ? task.label : 'Task Detail';
+  if (titleEl) titleEl.textContent = label;
+  
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty">No comms yet.</div>';
+    return;
+  }
+  
+  // Build tree from filtered comms
+  var tree = buildCommsTree(filtered);
+  
+  // Render recursively
+  el.innerHTML = renderCommsThread(tree, 0);
 }
 
 function renderFleet(fleet) {
@@ -472,6 +1463,7 @@ function renderFleet(fleet) {
         var iconId = AGENT_ICONS[a.id] || 'icon-headset';
         var displayName = a.topicLabel || a.identityName || a.name;
         html += '<div class="agent-card ' + (a.status || 'idle') + '">' +
+          '<div class="c4"></div>' +
           '<div class="agent-card-top">' +
             '<div class="agent-icon">' +
               '<svg><use href="#' + iconId + '"/></svg>' +
@@ -507,6 +1499,639 @@ function escapeHtml(text) {
 }
 
 connect();
+
+// ─── Sessions View ───
+var sessionsData = [];
+var selectedSessionId = null;
+
+function renderSessionsList(sessions) {
+  var el = document.getElementById('sessions-list');
+  var countEl = document.getElementById('sessions-count');
+  if (!el) return;
+  countEl.textContent = sessions.length;
+  if (sessions.length === 0) {
+    el.innerHTML = '<div class="empty">No sessions found</div>';
+    return;
+  }
+  el.innerHTML = sessions.map(function(s) {
+    var cls = s.session_id === selectedSessionId ? 'selected' : '';
+    return '<div class="session-row ' + cls + '" data-session-id="' + escapeHtml(s.session_id) + '">' +
+      '<div class="session-row-top">' +
+        '<span class="session-row-label">' + escapeHtml(s.label || s.agent_id || 'unknown') + '</span>' +
+        '<span class="session-row-status ' + s.status + '">' + s.status + '</span>' +
+      '</div>' +
+      '<div class="session-row-meta">' +
+        '<span>' + escapeHtml(s.agent_id || '') + '</span>' +
+        '<span>' + fmtTokens(s.tokens ? s.tokens.total : 0) + ' tok</span>' +
+        '<span>' + ago(s.last_activity) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  el.querySelectorAll('.session-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+      var id = row.getAttribute('data-session-id');
+      selectedSessionId = id;
+      renderSessionsList(sessionsData);
+      fetchSessionDetail(id);
+    });
+  });
+}
+
+function renderSessionDetail(detail) {
+  var el = document.getElementById('sessions-detail');
+  if (!el) return;
+  var metaHtml = [
+    '<span><span class="meta-label">Agent:</span> <span class="meta-value">' + escapeHtml(detail.agent_id || '') + '</span></span>',
+    '<span><span class="meta-label">Kind:</span> <span class="meta-value">' + escapeHtml(detail.kind || '') + '</span></span>',
+    '<span><span class="meta-label">Model:</span> <span class="meta-value">' + escapeHtml((detail.model || '').split('/').pop()) + '</span></span>',
+    '<span><span class="meta-label">Started:</span> <span class="meta-value">' + (detail.started ? new Date(detail.started).toISOString().slice(0,19) + 'Z' : '-') + '</span></span>',
+    '<span><span class="meta-label">Last:</span> <span class="meta-value">' + (detail.last_activity ? new Date(detail.last_activity).toISOString().slice(0,19) + 'Z' : '-') + '</span></span>',
+    '<span><span class="meta-label">Tokens:</span> <span class="meta-value">' + fmtTokens(detail.tokens ? detail.tokens.total : 0) + '</span></span>',
+    '<span><span class="meta-label">In/Out:</span> <span class="meta-value">' + fmtTokens(detail.tokens ? detail.tokens.input : 0) + ' / ' + fmtTokens(detail.tokens ? detail.tokens.output : 0) + '</span></span>',
+  ];
+  if (detail.is_subagent && detail.task_desc) {
+    metaHtml.push('<span><span class="meta-label">Task:</span> <span class="meta-value">' + escapeHtml(detail.task_desc.slice(0, 120)) + '</span></span>');
+  }
+  if (detail.is_heartbeat) {
+    metaHtml.push('<span><span class="meta-label">Heartbeat:</span> <span class="meta-value">yes</span></span>');
+  }
+  var eventsHtml = '';
+  if (detail.events && detail.events.length > 0) {
+    eventsHtml = '<div class="section-title" style="margin-top:var(--s4)">Event Timeline</div>' +
+      detail.events.map(function(ev) {
+        var typeClass = ev.type || 'spawn';
+        return '<div class="session-event">' +
+          '<div class="session-event-header">' +
+            '<span class="session-event-type ' + typeClass + '">' + escapeHtml(ev.type) + '</span>' +
+            '<span class="session-event-actor">' + escapeHtml(ev.actor) + '</span>' +
+            (ev.target ? '<span class="session-event-arrow">\u2192</span><span class="session-event-target">' + escapeHtml(ev.target) + '</span>' : '') +
+            '<span class="session-event-time">' + ago(ev.ts) + '</span>' +
+          '</div>' +
+          '<div class="session-event-summary">' + escapeHtml(ev.summary || '') + '</div>' +
+        '</div>';
+      }).join('');
+  } else {
+    eventsHtml = '<div class="empty" style="margin-top:var(--s4)">No events recorded</div>';
+  }
+  el.innerHTML =
+    '<div class="session-detail-header">' +
+      '<div class="session-detail-title">' + escapeHtml(detail.label || (detail.session_id || '').slice(0, 12)) + '</div>' +
+      '<div class="session-detail-meta">' + metaHtml.join('') + '</div>' +
+    '</div>' +
+    eventsHtml;
+}
+
+function fetchSessionDetail(id) {
+  fetch('/api/sessions/' + encodeURIComponent(id))
+    .then(function(res) { return res.json(); })
+    .then(function(detail) { renderSessionDetail(detail); })
+    .catch(function() {
+      var el = document.getElementById('sessions-detail');
+      if (el) el.innerHTML = '<div class="empty">Failed to load session detail</div>';
+    });
+}
+
+function fetchSessionsList() {
+  fetch('/api/sessions')
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      sessionsData = data.sessions || [];
+      renderSessionsList(sessionsData);
+      if (!selectedSessionId && sessionsData.length > 0) {
+        var firstActive = sessionsData.find(function(s) { return s.status === 'active'; });
+        if (firstActive) {
+          selectedSessionId = firstActive.session_id;
+          renderSessionsList(sessionsData);
+          fetchSessionDetail(selectedSessionId);
+        }
+      }
+    })
+    .catch(function() { /* endpoint not available yet */ });
+}
+
+// Wire SSE listener for sessions-update events
+if (es) {
+  es.addEventListener('sessions-update', function(e) {
+    var data = JSON.parse(e.data);
+    sessionsData = data.sessions || [];
+    renderSessionsList(sessionsData);
+    if (selectedSessionId && sessionsData.find(function(s) { return s.session_id === selectedSessionId; })) {
+      fetchSessionDetail(selectedSessionId);
+    }
+  });
+}
+
+// Also wire into the existing connect() SSE — add listener after connect
+var _origConnect = connect;
+connect = function() {
+  _origConnect();
+  // The EventSource is created inside connect(), but we can listen on the next tick
+  setTimeout(function() {
+    if (es) {
+      es.addEventListener('sessions-update', function(e) {
+        var data = JSON.parse(e.data);
+        sessionsData = data.sessions || [];
+        renderSessionsList(sessionsData);
+        if (selectedSessionId && sessionsData.find(function(s) { return s.session_id === selectedSessionId; })) {
+          fetchSessionDetail(selectedSessionId);
+        }
+      });
+    }
+  }, 100);
+};
+
+// ─── Orbit View (v2 — multiple cores, arrowheads, larger icons, wider spacing) ───
+var ORBIT_L = { W: 2400, H: 1600, coreR: 40, hexR: 31, labelDrop: 58, clearTarget: 32, packOffset: 140, coreRingR: 72 };
+// Three orbit ring radii — evenly spaced
+// r1 = orchestrator ring (where diamonds sit)
+// r2 = agent ring (where hexagons sit)
+// r3 = sub-agent ring (outer, for spawned children)
+var ORBIT_R1 = 72;                          // orchestrator ring
+var ORBIT_R2 = ORBIT_R1 + 280;              // 352 — agent ring
+var ORBIT_R3 = ORBIT_R2 + 160;              // 512 — sub-agent ring (closer in)
+var orbitZoom = 1, orbitPanX = 0, orbitPanY = 0;
+var SVG_NS = 'http://www.w3.org/2000/svg';
+
+var ZONE_ORDER = ['producers', 'planners', 'critics', 'researchers'];
+var ZONE_CAPS = { planners: '// PLANNERS', producers: '// PRODUCERS', critics: '// CRITICS', researchers: '// RESEARCHERS' };
+// Category colors — used for agent names (idle/stale) and category labels (60% opacity)
+var ZONE_COLORS = {
+  producers: 'var(--cyan-hi)',
+  planners: 'var(--green)',
+  critics: 'var(--violet)',
+  researchers: 'var(--orange)'
+};
+
+function polar(cx, cy, r, deg) {
+  var a = deg * Math.PI / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+
+function hexPath(r) {
+  var pts = [];
+  for (var i = 0; i < 6; i++) {
+    var p = polar(0, 0, r, i * 60);
+    pts.push(p[0].toFixed(1) + ' ' + p[1].toFixed(1));
+  }
+  return 'M' + pts.join(' L') + ' Z';
+}
+
+function hashUnit(name, salt) {
+  var s = String(name) + '#' + salt;
+  var h = 2166136261;
+  for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 100000) / 100000;
+}
+
+// Even distribution: sort agents by category, then distribute evenly across 360°
+// Returns placed nodes at a fixed radius, sorted by category for visual grouping
+function distributeEvenly(agents, radius, cx, cy) {
+  // Sort by category to group visually
+  var sorted = agents.slice().sort(function(a, b) {
+    var ca = (a.category || '').toLowerCase();
+    var cb = (b.category || '').toLowerCase();
+    if (ca === cb) return 0;
+    return ZONE_ORDER.indexOf(ca) > ZONE_ORDER.indexOf(cb) ? 1 : -1;
+  });
+  var n = sorted.length;
+  var out = [];
+  var startDeg = -90; // start at top
+  for (var i = 0; i < n; i++) {
+    var deg = startDeg + (360 / n) * i;
+    var xy = polar(cx, cy, radius, deg);
+    out.push({ node: sorted[i], deg: deg, r: radius, x: xy[0], y: xy[1], ring: 0, zone: sorted[i].category || '' });
+  }
+  return out;
+}
+
+// Category label positions: find angular midpoint of each category's arc,
+// place label outside the agent ring
+function categoryLabelPositions(placed, radius, cx, cy) {
+  var byCat = {};
+  placed.forEach(function(p) {
+    var cat = p.zone || p.node.category || '';
+    if (!byCat[cat]) byCat[cat] = [];
+    byCat[cat].push(p.deg);
+  });
+  var labels = [];
+  for (var cat in byCat) {
+    var degs = byCat[cat];
+    var sum = 0;
+    for (var i = 0; i < degs.length; i++) sum += degs[i];
+    var midDeg = sum / degs.length;
+    // Normalize to 0-360
+    midDeg = ((midDeg % 360) + 360) % 360;
+    // Place label at the given radius (already on r3)
+    var xy = polar(cx, cy, radius, midDeg);
+    labels.push({ cat: cat, deg: midDeg, x: xy[0], y: xy[1] });
+  }
+  return labels;
+}
+
+function relaxField(placed, L, coreX, coreY, corePositions) {
+  // Angular-only relaxation: preserve each node's assigned radius (r),
+  // only adjust the angle (deg) to spread nodes apart on their ring.
+  // This maintains the nested-circle structure.
+  for (var pass = 0; pass < 120; pass++) {
+    var moved = false;
+    for (var i = 0; i < placed.length; i++) {
+      for (var j = i + 1; j < placed.length; j++) {
+        var a = placed[i], b = placed[j];
+        var dx = a.x - b.x, dy = a.y - b.y;
+        var d = Math.hypot(dx, dy);
+        var minDist = 2 * L.hexR + L.clearTarget;
+        if (d < minDist && d > 0.01) {
+          // Compute angular push instead of 2D push
+          var pushPx = (minDist - d) * 0.4;
+          // If both are on the same ring, push angularly in opposite directions
+          if (Math.abs(a.r - b.r) < 20) {
+            var midDeg = (a.deg + b.deg) / 2;
+            var da = a.deg - midDeg;
+            var db = b.deg - midDeg;
+            var signA = da >= 0 ? 1 : -1;
+            var signB = db >= 0 ? 1 : -1;
+            if (da === 0 && db === 0) { signA = 1; signB = -1; }
+            var angPush = pushPx / Math.max(1, a.r) * (180 / Math.PI);
+            a.deg += signA * angPush;
+            b.deg += signB * angPush;
+            var xyA = polar(coreX, coreY, a.r, a.deg);
+            var xyB = polar(coreX, coreY, b.r, b.deg);
+            a.x = xyA[0]; a.y = xyA[1];
+            b.x = xyB[0]; b.y = xyB[1];
+          } else {
+            // Different rings: small radial nudge to separate them
+            var rDiff = a.r - b.r;
+            var sign = rDiff >= 0 ? 1 : -1;
+            a.r += sign * pushPx * 0.15;
+            b.r -= sign * pushPx * 0.15;
+            var xyA2 = polar(coreX, coreY, a.r, a.deg);
+            var xyB2 = polar(coreX, coreY, b.r, b.deg);
+            a.x = xyA2[0]; a.y = xyA2[1];
+            b.x = xyB2[0]; b.y = xyB2[1];
+          }
+          moved = true;
+        }
+      }
+      // Core avoidance: push away from ALL core positions
+      if (corePositions && corePositions.length) {
+        for (var ci = 0; ci < corePositions.length; ci++) {
+          var cpos = corePositions[ci];
+          var cdx = placed[i].x - cpos.x;
+          var cdy = placed[i].y - cpos.y;
+          var cd = Math.hypot(cdx, cdy);
+          var minCore = L.coreR + L.hexR + 30;
+          if (cd < minCore && cd > 0.01) {
+            // Push radially outward from this core
+            var ang = Math.atan2(cdy, cdx) * 180 / Math.PI;
+            placed[i].deg = ang; // snap to the angle away from core
+            placed[i].r = Math.max(placed[i].r, minCore);
+            var xy = polar(coreX, coreY, placed[i].r, placed[i].deg);
+            placed[i].x = xy[0]; placed[i].y = xy[1];
+            moved = true;
+          }
+        }
+      } else {
+        // Fallback: single-core avoidance (original behavior)
+        var cd = Math.hypot(placed[i].x - coreX, placed[i].y - coreY);
+        var minCore = L.coreR + L.hexR + 30;
+        if (cd < minCore && cd > 0.01) {
+          placed[i].r = Math.max(placed[i].r, minCore);
+          var xy = polar(coreX, coreY, placed[i].r, placed[i].deg);
+          placed[i].x = xy[0]; placed[i].y = xy[1];
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
+function makeSVG(tag, attrs) {
+  var n = document.createElementNS(SVG_NS, tag);
+  if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+
+// Build a diamond-shaped core at position (cx, cy)
+// Anchor dots (4 diamond points: N, E, S, W) only rendered if activeAnchors set is provided
+function buildOrbitCore(cx, cy, L, label, isWorking, activeAnchors) {
+  var g = makeSVG('g', { class: 'ocore' + (isWorking ? ' working' : '') });
+  var r = L.coreR;
+  // Diamond shape: 4 points (N, E, S, W)
+  var diamondPath = 'M ' + cx + ' ' + (cy - r) + ' L ' + (cx + r) + ' ' + cy + ' L ' + cx + ' ' + (cy + r) + ' L ' + (cx - r) + ' ' + cy + ' Z';
+  // Diamond fill + stroke (replaces concentric circles)
+  g.appendChild(makeSVG('path', { d: diamondPath, class: 'ocore-bound' }));
+  // Inner diamond at 60% for depth
+  var ir = r * 0.6;
+  var innerPath = 'M ' + cx + ' ' + (cy - ir) + ' L ' + (cx + ir) + ' ' + cy + ' L ' + cx + ' ' + (cy + ir) + ' L ' + (cx - ir) + ' ' + cy + ' Z';
+  g.appendChild(makeSVG('path', { d: innerPath, class: 'ocore-ring r2' }));
+  // Heart dot in center
+  g.appendChild(makeSVG('circle', { cx: cx, cy: cy, r: r * 0.12, class: 'ocore-heart' }));
+  // Label
+  var lbl = makeSVG('text', { x: cx, y: cy + 4, 'text-anchor': 'middle', class: 'ocore-label' });
+  lbl.textContent = label || 'DISPATCH';
+  g.appendChild(lbl);
+  // Anchor points: N=0deg(-90), E=90deg(0), S=180deg(90), W=270deg(180)
+  // 4 anchors at diamond points
+  var anchorPoints = [];
+  var anchorAngles = [-90, 0, 90, 180]; // N, E, S, W
+  for (var i = 0; i < anchorAngles.length; i++) {
+    var p = polar(cx, cy, r, anchorAngles[i]);
+    anchorPoints.push(p);
+    // Only render the dot if this anchor has an active link
+    if (activeAnchors && activeAnchors[i]) {
+      var dot = makeSVG('circle', { cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 3, class: 'odot anchor' });
+      g.appendChild(dot);
+    }
+  }
+  return { g: g, anchors: anchorPoints };
+}
+
+var ORBIT_ICONS = {
+  main: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  planner: 'M9 11l3 3L22 4M2 12l3 3M2 7l3 3',
+  writer: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M9 13h6 M9 17h6',
+  'dev-lead': 'M16 18l6-6-6-6 M8 6l-6 6 6 6',
+  'art-director': 'M12 19l7-7 3 3-7 7-3-3z M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z',
+  'tax-assistant': 'M12 1v22 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  devops: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M2 12h20 M12 2a15 15 0 0 1 0 20 M12 2a15 15 0 0 0 0 20',
+  philosopher: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 7v10 M9 12h6',
+  'security-reviewer': 'M12 2L4 6v6c0 5 3 9 8 10 5-1 8-5 8-10V6l-8-4z',
+  editor: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z',
+  'creative-reviewer': 'M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z',
+  'tax-reviewer': 'M9 11l3 3L22 4 M2 12l3 3 M9 17h6',
+  'ux-researcher': 'M21 12c0 5-9 9-9 9s-9-4-9-9a9 9 0 0 1 18 0z M12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z',
+  'pm-impact-analyst': 'M3 3v18h18 M7 14l4-4 4 4 6-6',
+  'qa-reviewer': 'M9 11l3 3L22 4 M2 12l3 3 M9 17h6 M12 2v3 M12 19v3 M2 12h3 M19 12h3',
+  'ui-designer': 'M3 3h18v18H3z M3 9h18 M9 3v18 M3 15h18 M15 3v18'
+};
+
+function renderOrbit(data) {
+  var svg = document.getElementById('orbit-content');
+  if (!svg) return;
+  var L = ORBIT_L;
+  svg.innerHTML = '';
+
+  var agents = (data && data.agents) ? data.agents : (data && data.fleet) ? data.fleet : [];
+  var connections = (data && data.comms) ? data.comms.filter(function(c) { return c.kind === 'spawn' || c.kind === 'send'; }) : [];
+
+  // Issue #3: Extract orchestrator topic cards as multiple cores
+  var cores = [];
+  var nonOrchAgents = [];
+  agents.forEach(function(a) {
+    if (a.category === 'orchestrator' || a.id === 'main') {
+      cores.push(a);
+    } else {
+      nonOrchAgents.push(a);
+    }
+  });
+  // If no orchestrator cards, create a default one
+  if (cores.length === 0) cores.push({ id: 'main', topicLabel: 'DISPATCH', status: 'idle' });
+
+  // Position cores in an inner ring around the canvas center
+  var numCores = cores.length;
+  var W = L.W, H = L.H;
+  var cx = W / 2, cy = H / 2;
+  var corePositions = [];
+  if (numCores === 1) {
+    corePositions.push({ x: cx, y: cy });
+  } else {
+    // Distribute cores on the orchestrator ring (r1)
+    var coreStep = 360 / numCores;
+    var coreStart = -90;
+    for (var i = 0; i < numCores; i++) {
+      var coreDeg = coreStart + i * coreStep;
+      var corePt = polar(cx, cy, ORBIT_R1, coreDeg);
+      corePositions.push({ x: corePt[0], y: corePt[1] });
+    }
+  }
+
+  // ─── Draw orbit guide circles (background, low opacity) ───
+  // Three concentric circles at r1, r2, r3
+  var guideCircles = [
+    { r: ORBIT_R1, label: 'ORCHESTRATORS' },
+    { r: ORBIT_R2, label: 'AGENTS' },
+    { r: ORBIT_R3, label: 'SUB-AGENTS' }
+  ];
+  guideCircles.forEach(function(g) {
+    // Circle guide
+    var circle = makeSVG('circle', {
+      cx: cx, cy: cy, r: g.r,
+      class: 'orbit-guide'
+    });
+    svg.appendChild(circle);
+    // Ring label at right side to avoid overlapping topic cards at top
+    var lblX = cx + g.r + 8;
+    var lbl = makeSVG('text', {
+      x: lblX, y: cy + 4,
+      'text-anchor': 'start',
+      class: 'orbit-guide-label'
+    });
+    lbl.textContent = '// ' + g.label;
+    svg.appendChild(lbl);
+  });
+
+  // Agents orbit the canvas center
+  var layoutCenter = { x: W / 2, y: H / 2 };
+
+  // Evenly distribute agents on the agent ring (r2) across 360°
+  var placed = distributeEvenly(nonOrchAgents, ORBIT_R2, layoutCenter.x, layoutCenter.y);
+
+  // Relax to resolve any minor overlaps
+  relaxField(placed, L, layoutCenter.x, layoutCenter.y, corePositions);
+
+  // Determine active states (issue #4 — use same status as fleet)
+  var anyActive = agents.some(function(a) { return a.status === 'active'; });
+  var activeIds = {};
+  agents.forEach(function(a) { activeIds[a.id] = a.status || 'idle'; });
+
+  // Build hot connection map with source core info (issue #7 — arrow direction)
+  var hotLinks = {};
+  connections.forEach(function(c) {
+    if (c.to) {
+      hotLinks[c.to] = c;
+    }
+  });
+
+  // Issue #7: Add arrowhead markers to defs
+  var defs = document.getElementById('orbit-defs');
+  if (defs) {
+    defs.innerHTML = '';
+    var marker = makeSVG('marker', { id: 'arrow-cyan', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
+    marker.appendChild(makeSVG('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--cyan-45)' }));
+    defs.appendChild(marker);
+    var markerHot = makeSVG('marker', { id: 'arrow-gold', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
+    markerHot.appendChild(makeSVG('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--gold-hi)' }));
+    defs.appendChild(markerHot);
+  }
+
+  // Determine which agents are "in use": active, recent, or have comms connections
+  var inUseIds = {};
+  nonOrchAgents.forEach(function(a) {
+    var st = a.status || 'idle';
+    if (st === 'active' || st === 'recent') {
+      inUseIds[a.id || a.name] = true;
+    }
+  });
+  connections.forEach(function(c) {
+    if (c.to) inUseIds[c.to] = true;
+    if (c.from) inUseIds[c.from] = true;
+  });
+
+  // Draw links only to agents that are in use
+  // Track which anchors have active links per core
+  var coreAnchorUsage = corePositions.map(function() { return [false, false, false, false]; }); // N, E, S, W
+  placed.forEach(function(p) {
+    var id = p.node.id || p.node.name;
+    if (!inUseIds[id]) return; // Skip lines to agents not in use
+    var isHot = !!hotLinks[id];
+    // Find nearest core anchor point (diamond has 4 anchors: N, E, S, W)
+    var nearestCoreIdx = 0;
+    var nearestAnchorIdx = 0;
+    var minDist = Infinity;
+    var anchorAngles = [-90, 0, 90, 180];
+    for (var ci = 0; ci < corePositions.length; ci++) {
+      var cp = corePositions[ci];
+      for (var ai = 0; ai < 4; ai++) {
+        var ap = polar(cp.x, cp.y, L.coreR, anchorAngles[ai]);
+        var d = Math.hypot(ap[0] - p.x, ap[1] - p.y);
+        if (d < minDist) { minDist = d; nearestCoreIdx = ci; nearestAnchorIdx = ai; }
+      }
+    }
+    var nearestAnchor = polar(corePositions[nearestCoreIdx].x, corePositions[nearestCoreIdx].y, L.coreR, anchorAngles[nearestAnchorIdx]);
+    coreAnchorUsage[nearestCoreIdx][nearestAnchorIdx] = true;
+    // End line at hexagon edge, not center: shorten line by hexR in the direction of the hex
+    var dx = p.x - nearestAnchor[0];
+    var dy = p.y - nearestAnchor[1];
+    var dist = Math.hypot(dx, dy);
+    var shorten = Math.min(L.hexR * 0.9, dist * 0.3);
+    var endX = p.x - (dx / dist) * shorten;
+    var endY = p.y - (dy / dist) * shorten;
+    var line = makeSVG('line', {
+      x1: nearestAnchor[0].toFixed(1), y1: nearestAnchor[1].toFixed(1),
+      x2: endX.toFixed(1), y2: endY.toFixed(1),
+      class: 'olink' + (isHot ? ' hot' : ''),
+      'marker-end': isHot ? 'url(#arrow-gold)' : 'url(#arrow-cyan)',
+      'data-link': id
+    });
+    svg.appendChild(line);
+  });
+
+  // Category labels: positioned just outside the agent ring
+  // Puts them between agent ring and sub-agent ring, closer to agents
+  var catLabelR = ORBIT_R2 + L.hexR + 35;
+  var catLabels = categoryLabelPositions(placed, catLabelR, layoutCenter.x, layoutCenter.y);
+  catLabels.forEach(function(cl) {
+    var cap = makeSVG('text', { x: cl.x.toFixed(1), y: cl.y.toFixed(1), 'text-anchor': 'middle', class: 'osec-cap' });
+    cap.textContent = ZONE_CAPS[cl.cat] || cl.cat.toUpperCase();
+    // Category label color at 60% opacity (use style to override CSS)
+    var color = ZONE_COLORS[cl.cat] || 'var(--dim)';
+    cap.style.fill = color;
+    cap.style.opacity = '0.6';
+    svg.appendChild(cap);
+  });
+
+  // Draw nodes (issue #6 — icons 250% bigger, issue #8 — active pulse)
+  placed.forEach(function(p) {
+    var id = p.node.id || p.node.name;
+    var st = p.node.status || 'idle';
+    var cls = 'onode ' + st;
+
+    var g = makeSVG('g', { class: cls, 'data-agent': id, transform: 'translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ')' });
+    g.appendChild(makeSVG('path', { d: hexPath(L.hexR), class: 'ohex' }));
+
+    // Icons scaled to match smaller hexagons
+    var iconPath = ORBIT_ICONS[id];
+    if (iconPath) {
+      g.appendChild(makeSVG('path', { d: iconPath, class: 'glyph', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.2, transform: 'scale(0.88) translate(-12,-12)' }));
+    }
+
+    var lbl = makeSVG('text', { x: 0, y: L.hexR + 12, 'text-anchor': 'middle', class: 'olabel-name' });
+    lbl.textContent = p.node.identityName || p.node.name || id;
+    // Idle and stale agents get category-colored name (use style to override CSS)
+    if (st === 'idle' || st === 'stale') {
+      var catColor = ZONE_COLORS[p.node.category || p.zone] || 'var(--dim)';
+      lbl.style.fill = catColor;
+    }
+    g.appendChild(lbl);
+
+    var cls2 = makeSVG('text', { x: 0, y: L.hexR + 22, 'text-anchor': 'middle', class: 'olabel-class' });
+    cls2.textContent = (p.node.model || '').split('/').pop() || '';
+    g.appendChild(cls2);
+
+    svg.appendChild(g);
+  });
+
+  // Draw cores last (on top of links, behind nodes visually)
+  // Pass active anchor usage so only used anchor dots are rendered
+  cores.forEach(function(core, idx) {
+    var pos = corePositions[idx];
+    var isWorking = (core.status === 'active' || core.status === 'recent');
+    var label = core.topicLabel || 'DISPATCH';
+    var activeAnchors = coreAnchorUsage[idx] || [false, false, false, false];
+    var built = buildOrbitCore(pos.x, pos.y, L, label, isWorking, activeAnchors);
+    svg.appendChild(built.g);
+  });
+
+  // Corner telemetry
+  var tlEl = document.getElementById('orbit-corner-tl');
+  var brEl = document.getElementById('orbit-corner-br');
+  if (tlEl) {
+    var ac = agents.filter(function(a) { return a.status === 'active'; }).length;
+    tlEl.innerHTML = '<div class="orbit-corner-label">AGENTS</div><div class="orbit-corner-val' + (ac > 0 ? ' lit' : '') + '">' + ac + ' / ' + agents.length + '</div>';
+  }
+  if (brEl) {
+    var tt = agents.reduce(function(s, a) { return s + (a.tokens || 0); }, 0);
+    brEl.innerHTML = '<div class="orbit-corner-label">TOTAL TOKENS</div><div class="orbit-corner-val">' + fmtTokens(tt) + '</div>';
+  }
+}
+
+function applyOrbitTransform() {
+  var content = document.getElementById('orbit-content');
+  if (content) {
+    content.setAttribute('transform', 'translate(' + orbitPanX + ',' + orbitPanY + ') scale(' + orbitZoom + ')');
+  }
+}
+
+// Zoom + pan — trackpad pinch zooms, scroll/mouse wheel pans
+(function() {
+  var container = document.getElementById('orbit-container');
+  if (!container) return;
+  container.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    if (e.ctrlKey) {
+      // Pinch gesture (ctrl+wheel) → zoom, gentle sensitivity
+      var delta = e.deltaY > 0 ? 0.96 : 1.04;
+      orbitZoom = Math.max(0.3, Math.min(3, orbitZoom * delta));
+      applyOrbitTransform();
+    } else {
+      // Scroll / mouse wheel → pan
+      orbitPanX -= e.deltaX;
+      orbitPanY -= e.deltaY;
+      applyOrbitTransform();
+    }
+  }, { passive: false });
+  var dragging = false, dragStart = null;
+  container.addEventListener('mousedown', function(e) {
+    if (e.target.tagName === 'svg' || e.target === container || e.target.id === 'orbit-content') {
+      dragging = true;
+      dragStart = { x: e.clientX - orbitPanX, y: e.clientY - orbitPanY };
+    }
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    orbitPanX = e.clientX - dragStart.x;
+    orbitPanY = e.clientY - dragStart.y;
+    applyOrbitTransform();
+  });
+  document.addEventListener('mouseup', function() { dragging = false; });
+  var zi = document.getElementById('orbit-zoom-in');
+  var zo = document.getElementById('orbit-zoom-out');
+  var rst = document.getElementById('orbit-reset');
+  if (zi) zi.addEventListener('click', function() { orbitZoom = Math.min(3, orbitZoom * 1.1); applyOrbitTransform(); });
+  if (zo) zo.addEventListener('click', function() { orbitZoom = Math.max(0.3, orbitZoom * 0.91); applyOrbitTransform(); });
+  if (rst) rst.addEventListener('click', function() { orbitZoom = 1; orbitPanX = 0; orbitPanY = 0; applyOrbitTransform(); });
+})();
 </script>
 </body>
 </html>
